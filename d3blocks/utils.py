@@ -1,7 +1,7 @@
 """Utils.
 
 Library     : d3blocks
-Author      : E.Taskesen
+Author      : E.Taskesen and Anyaoha
 Mail        : erdogant@gmail.com
 Github      : https://github.com/d3blocks/d3blocks
 License     : GPL3
@@ -534,7 +534,7 @@ def write_html_file(config, html, logger):
             f.write(html)
 
 
-def get_support(support):
+def get_support(support = None):
     script=''
     if isinstance(support, bool) and (not support): support = None
     if isinstance(support, bool) and support: support = 'text'
