@@ -6,13 +6,12 @@ Mail        : erdogant@gmail.com
 Github      : https://github.com/d3blocks/d3blocks
 License     : GPL3
 """
-import json
 from jinja2 import Environment, PackageLoader
 
 try:
-    from .. utils import convert_dataframe_dict, set_path, pre_processing, update_config, set_labels, write_html_file, vec2flare
+    from .. utils import convert_dataframe_dict, set_path, pre_processing, update_config, set_labels, write_html_file, vec2flare, include_save_to_svg_script
 except:
-    from utils import convert_dataframe_dict, set_path, pre_processing, update_config, set_labels, write_html_file, vec2flare
+    from utils import convert_dataframe_dict, set_path, pre_processing, update_config, set_labels, write_html_file, vec2flare, include_save_to_svg_script
 
 
 # %% Set configuration properties
@@ -32,6 +31,7 @@ def set_config(config={}, margin={}, font={}, border={}, **kwargs):
     config['font'] = {**{'size': 10, 'type': 'sans-serif', 'position': 'absolute'}, **font}
     config['border'] = {**{'type': 'solid', 'color': '#FFFFFF', 'width': 1}, **border}
     config['notebook'] = kwargs.get('notebook', False)
+    config['save_button'] = kwargs.get('save_button', True)
     # return
     return config
 
@@ -59,7 +59,7 @@ def set_edge_properties(df, **kwargs):
     # node_properties = kwargs.get('node_properties')
     logger = kwargs.get('logger', None)
     df = df.copy()
-    df = pre_processing(df, labels=df.columns.values[:-1].astype(str))
+    df = pre_processing(df, labels=df.columns.values[:-1].astype(str), logger=logger)
     # Create unique dataframe, udpate weights
     # df = create_unique_dataframe(df, logger=logger)
     return df
@@ -126,7 +126,6 @@ def show(df, **kwargs):
     df.reset_index(inplace=True, drop=True)
 
     # Create the data from the input of javascript
-    # X = get_data_ready_for_d3(df)
     X = vec2flare(df, logger=logger)
 
     # Write to HTML
@@ -148,6 +147,8 @@ def write_html(X, config, logger=None):
     None.
 
     """
+    # Save button
+    save_script, show_save_button = include_save_to_svg_script(config['save_button'], title=config['title'])
     # Set width and height to screen resolution if None.
     width = 'window.screen.width' if config['figsize'][0] is None else config['figsize'][0]
     height = 'window.screen.height' if config['figsize'][1] is None else config['figsize'][1]
@@ -168,6 +169,9 @@ def write_html(X, config, logger=None):
         'marginBottom': config['margin']['bottom'],
         'marginLeft': config['margin']['left'],
         'SUPPORT': config['support'],
+        'SAVE_TO_SVG_SCRIPT': save_script,
+        'SAVE_BUTTON_START': show_save_button[0],
+        'SAVE_BUTTON_STOP': show_save_button[1],
     }
 
     try:
@@ -182,54 +186,3 @@ def write_html(X, config, logger=None):
     write_html_file(config, html, logger)
     # Return html
     return html
-
-
-def get_data_ready_for_d3_simple(df):
-    # https://github.com/andrewheekin/csv2flare.json/blob/master/csv2flare.json.py
-    # start a new flare.json document
-    d = dict()
-    d = {"name":"flare", "children": []}
-    
-    for line in df.values:
-        the_parent = line[0]
-        the_child = line[1]
-        child_size = line[2]
-    
-        # make a list of keys
-        keys_list = []
-        for item in d['children']:
-            keys_list.append(item['name'])
-    
-        # if 'the_parent' is NOT a key in the flare.json yet, append it
-        if not the_parent in keys_list:
-            d['children'].append({"name":the_parent, "children":[{"name":the_child, "size":child_size}]})
-    
-        # if 'the_parent' IS a key in the flare.json, add a new child to it
-        else:
-            d['children'][keys_list.index(the_parent)]['children'].append({"name":the_child, "size":child_size})
-    
-    return d
-
-
-# def get_data_ready_for_d3_v3(df, labels):
-#     data = {"name": "data", "children": []}
-#     source_nodes = list(set(df['source']))
-#     target_nodes = list(set(df['target']))
-#     nodes = sorted(list(set(source_nodes + target_nodes)))
-
-#     for node in nodes:
-#         children = []
-#         node_df = df[(df['source'] == node) | (df['target'] == node)]
-#         node_sources = list(set(node_df['source']))
-#         node_targets = list(set(node_df['target']))
-#         node_children = sorted(list(set(node_sources + node_targets)))
-
-#         for child in node_children:
-#             child_df = node_df[(node_df['source'] == child) | (node_df['target'] == child)]
-#             child_weight = sum(child_df['weight'])
-#             children.append({"name": child, "size": child_weight})
-
-#         data['children'].append({"name": node, "children": children})
-
-#     # Return
-#     return data

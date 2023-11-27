@@ -10,21 +10,18 @@ from ismember import ismember
 import colourmap
 import numpy as np
 from jinja2 import Environment, PackageLoader
-from pathlib import Path
-import os
-import time
 
 try:
-    from .. utils import set_colors, pre_processing, convert_dataframe_dict, set_path, update_config, set_labels, create_unique_dataframe, write_html_file
+    from .. utils import set_colors, pre_processing, convert_dataframe_dict, set_path, update_config, set_labels, create_unique_dataframe, write_html_file, include_save_to_svg_script
 except:
-    from utils import set_colors, pre_processing, convert_dataframe_dict, set_path, update_config, set_labels, create_unique_dataframe, write_html_file
+    from utils import set_colors, pre_processing, convert_dataframe_dict, set_path, update_config, set_labels, create_unique_dataframe, write_html_file, include_save_to_svg_script
 
 
 # %% Set configuration properties
 def set_config(config={}, **kwargs):
     """Set the default configuration setting."""
     logger = kwargs.get('logger', None)
-    config['chart'] ='Chord'
+    config['chart'] = 'Chord'
     config['title'] = kwargs.get('title', 'Chord - D3blocks')
     config['filepath'] = set_path(kwargs.get('filepath', 'chord.html'), logger)
     config['figsize'] = kwargs.get('figsize', [900, 900])
@@ -33,6 +30,9 @@ def set_config(config={}, **kwargs):
     config['cmap'] = kwargs.get('cmap', 'tab20')
     config['fontsize'] = kwargs.get('fontsize', 10)
     config['notebook'] = kwargs.get('notebook', False)
+    config['ordering'] = kwargs.get('ordering', 'ascending')
+    config['arrowhead'] = kwargs.get('arrowhead', 10)
+    config['save_button'] = kwargs.get('save_button', True)
     # return
     return config
 
@@ -234,6 +234,7 @@ def show(df, **kwargs):
     df.reset_index(inplace=True, drop=True)
     df['source_id'] = list(map(lambda x: node_properties.get(x)['id'], df['source']))
     df['target_id'] = list(map(lambda x: node_properties.get(x)['id'], df['target']))
+
     # Create the data from the input of javascript
     X = get_data_ready_for_d3(df, node_properties)
     # Write to HTML
@@ -255,13 +256,36 @@ def write_html(X, config, logger=None):
     None.
 
     """
+    # Save button
+    save_script, show_save_button = include_save_to_svg_script(config['save_button'], title=config['title'])
+    ORDERING = ''
+    if isinstance(config['ordering'], str) and config['ordering']=='ascending':
+        ORDERING = 'const names = Array.from(new Set(data.flatMap(d => [d.source, d.target]))).sort(ascending)'
+    elif isinstance(config['ordering'], str) and config['ordering']=='descending':
+        ORDERING = 'const names = Array.from(new Set(data.flatMap(d => [d.source, d.target]))).sort(descending)'
+    elif isinstance(config['ordering'], (list, np.ndarray)):
+        # Make some checks first.
+        clean_labels = pre_processing(config['ordering'])
+        if len(np.unique(clean_labels)) < len(clean_labels): raise Exception('The ordering should be a unique list of labels.')
+        # Do the formatting
+        formatted_strings = [f"'{item}'" if "'" not in item else f'"{item}"' for item in clean_labels]
+        result_string = '[' + ', '.join(formatted_strings) + ']'
+        ORDERING = 'const names = Array.from(' + result_string + ');'
+    else:
+        ORDERING = 'const names = Array.from(new Set(data.flatMap(d => [d.source, d.target])))'
+
     content = {
         'json_data': X,
         'TITLE': config['title'],
         'WIDTH': config['figsize'][0],
         'HEIGHT': config['figsize'][1],
         'FONTSIZE': config['fontsize'],
+        'ARROWHEAD': config['arrowhead'],
+        'ORDERING': ORDERING,
         'SUPPORT': config['support'],
+        'SAVE_TO_SVG_SCRIPT': save_script,
+        'SAVE_BUTTON_START': show_save_button[0],
+        'SAVE_BUTTON_STOP': show_save_button[1],
     }
 
     try:

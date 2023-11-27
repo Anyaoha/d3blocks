@@ -10,19 +10,20 @@ else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
 
 # Setup ------------
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding='utf8') as fh:
     long_description = fh.read()
 setuptools.setup(
      install_requires=['numpy',
+                       'colourmap>=1.1.10',
+                       'datazets>=0.1.7',
+                       'd3graph>=2.4.16',
+                       'elasticgraph>=0.1.2',
+                       'ismember>=1.0.1',
                        'pandas',
                        'tqdm',
-                       'colourmap>=1.1.10',
-                       'jinja2',
-                       'd3graph>=2.4.6',
                        'requests',
-                       'ismember>=1.0.1',
                        'scikit-learn',
-                       'elasticgraph>=0.1.2',
+                       'jinja2',
                        ],
      python_requires='>=3',
      name='d3blocks',

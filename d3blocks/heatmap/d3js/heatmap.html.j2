@@ -13,7 +13,6 @@ $SUPPORT$
 <title>"$TITLE$"</title>
 <style>
 
-
 .d3heatmap body {
   background: #fcfcfa;
   color: #333;
@@ -182,7 +181,7 @@ body > pre {
 }
 
 svg {
-  font: 10px sans-serif;
+  font: $FONTSIZE$px sans-serif;
 }
 
 .axis path, .axis line {
@@ -246,12 +245,19 @@ n){return arguments.length?(t=+n,e):t},e.translate=function(t){return arguments.
   <option value="cluster">by Clustering</option>
 </select>
 
+<!-- Create save button -->
+$SAVE_BUTTON_START$
+<div style="max-width:$WIDTH$px;">
+    <center><button id="saveButton">Save</button></center>
+</div>
+$SAVE_BUTTON_STOP$
+
 <p>Use the drop-down menu to reorder the matrix and explore the data.
 </aside>
 
 <script>
 
-var margin = {top: 80, right: 0, bottom: 10, left: 80},
+var margin = {top: 120, right: 0, bottom: 10, left: 150},
     width = $WIDTH$,
     height = $HEIGHT$;
 
@@ -262,6 +268,10 @@ var x = d3.scale.ordinal().rangeBands([0, width]),
 var svg = d3.select("body").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
+    .call(d3.behavior.zoom().on("zoom", function () {
+      svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+    }))
+    .on("dblclick.zoom", null)
     .style("margin-left", -margin.left + "px")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -365,25 +375,45 @@ var data =
   function row(row) {
     var cell = d3.select(this).selectAll(".cell")
         .data(row.filter(function(d) { return d.z; }))
-      .enter().append("rect")
+        .enter().append("rect")
         .attr("class", "cell")
         .attr("x", function(d) { return x(d.x); })
         .attr("width", x.rangeBand())
         .attr("height", x.rangeBand())
         .style("fill-opacity", function(d) { return z(d.z); })
-        .style("fill", function(d) { return nodes[d.x].cluster == nodes[d.y].cluster ? c(nodes[d.x].cluster) : null; })
+		.style("fill", function(d) {
+			var sourceCluster = data.nodes[d.x].cluster;
+			var targetCluster = data.nodes[d.y].cluster;
+			return sourceCluster == targetCluster ? data.nodes[d.x].color : null;
+			})
+//        .style("fill", function(d) { return nodes[d.x].cluster == nodes[d.y].cluster ? c(nodes[d.x].cluster) : null; })
         .on("mouseover", mouseover)
         .on("mouseout", mouseout);
   }
 
-  function mouseover(p) {
-    d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; });
-    d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; });
-  }
+    function mouseover(p) {
+        d3.selectAll(".row text")
+            .classed("active", function(d, i) { return i == p.y; })
+            .style("font-size", function(d, i) { return i == p.y ? "$FONTSIZE_MOUSEOVER$px" : "$FONTSIZE$px"; }) // Adjust the font sizes as needed
+    	    .style("opacity", function(d, i) { return i === p.y ? 1 : 0.3; }) // Set opacity to 0 for non-selected elements
+        	;
+        d3.selectAll(".column text")
+            .classed("active", function(d, i) { return i == p.x; })
+            .style("font-size", function(d, i) { return i == p.x ? "$FONTSIZE_MOUSEOVER$px" : "$FONTSIZE$px"; }) // Adjust the font sizes as needed
+    	    .style("opacity", function(d, i) { return i === p.x ? 1 : 0.3; }) // Set opacity to 0 for non-selected elements
+            ;
+        }
 
-  function mouseout() {
-    d3.selectAll("text").classed("active", false);
-  }
+
+function mouseout() {
+  d3.selectAll(".row text, .column text")
+    .classed("active", false) // Remove the active class
+    .style("font-size", "$FONTSIZE$px") // Reset font size to default
+//    .style("fill", "black") // Reset fill color to black
+    .style("background-color", "transparent") // Reset background color to transparent
+    .style("opacity", 1); // Reset opacity to 1
+}
+
 
   d3.select("#order").on("change", function() {
     clearTimeout(timeout);
@@ -413,6 +443,8 @@ var data =
   }, 5000);
 
 //});
+
+$SAVE_TO_SVG_SCRIPT$
 
 </script>
 

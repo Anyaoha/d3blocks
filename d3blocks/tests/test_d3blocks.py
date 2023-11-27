@@ -8,10 +8,73 @@ try:
 except:
     raise ImportError('cv2 must be installed manually. Try to: <pip install opencv-python>')
 
-
-        
-
 class Testd3blocks(unittest.TestCase):
+    def test_medium_blog_chart_comparison(self) -> None:
+        # Source node names
+        source = ['Penny', 'Penny', 'Amy', 'Bernadette', 'Bernadette', 'Sheldon', 'Sheldon', 'Sheldon', 'Rajesh']
+        # Target node names
+        target = ['Leonard', 'Amy', 'Bernadette', 'Rajesh', 'Howard', 'Howard', 'Leonard', 'Amy', 'Penny']
+        # Edge Weights
+        weight = [5, 3, 2, 2, 5, 2, 3, 5, 2]
+
+        # Import and Initialize
+        from d3blocks import D3Blocks
+        d3 = D3Blocks()
+        # Convert
+        adjmat = d3.vec2adjmat(source, target, weight)
+
+        # Initialize
+        d3 = D3Blocks()
+        # Load stormofswords data sets
+        df = d3.import_example(data='stormofswords')
+
+        # Create network graph
+        # Initialize
+        d3 = D3Blocks()
+        # Network graph
+        d3.d3graph(df, charge=800, collision=2, showfig=True)
+        # d3.elasticgraph(df, charge=800, collision=2, scaler='zscore')
+        # Extract the node colors from the network graph.
+        node_colors = d3.D3graph.node_properties
+
+        # Heatmap
+        # Initialize
+        d3 = D3Blocks()
+        # Create the heatmap but do not show it yet because we first need to adjust the colors
+        d3.heatmap(df, showfig=False)
+        # Update the colors of the network graph to be consistent with the colors
+        d3.node_properties
+
+        for i, label in enumerate(d3.node_properties['label']):
+            if node_colors.get(label) is not None:
+                d3.node_properties['color'].iloc[i] = node_colors.get(label)['color']
+
+        d3.show(showfig=True, figsize=[600, 600], fontsize=8, scaler='zscore')
+
+        # Initialize
+        d3 = D3Blocks()
+        # Create sankey graph
+        d3.sankey(df, showfig=True)
+        
+        d3 = D3Blocks(chart='Sankey', frame=True)
+        # Load data set
+        df = d3.import_example(data='energy')
+        
+        # Set default node properties
+        d3.set_node_properties(df)
+        
+        # Update the colors of the network graph to be consistent with the colors
+        for i, label in enumerate(d3.node_properties['label']):
+            if node_colors.get(label) is not None:
+                d3.node_properties['color'].iloc[i] = node_colors.get(label)['color']
+        
+        # The colors in the dataframe are used in the chart.
+        print(d3.node_properties)
+        # Create edge properties
+        d3.set_edge_properties(df, color='target', opacity='target')
+        # Show the chart
+        d3.show()
+        
 
     def test_instantiate_d3blocks_no_args(self) -> None:
         """Test instantiation works with defaults"""
@@ -26,8 +89,7 @@ class Testd3blocks(unittest.TestCase):
         df = d3.import_example('energy')
         df = d3.vec2adjmat(df['source'], df['target'], weight=df['weight'], symmetric=True)
         # Create the heatmap
-        d3.heatmap(df, stroke='red', vmax=10, figsize=(700,700))
-
+        d3.heatmap(df, stroke='red', figsize=(700, 700))
 
     def test_matrix(self):
         # Initialize
@@ -36,8 +98,7 @@ class Testd3blocks(unittest.TestCase):
         df = d3.import_example('energy')
         df = d3.vec2adjmat(df['source'], df['target'], weight=df['weight'], symmetric=True)
         # Create the heatmap
-        d3.matrix(df, stroke='red', vmax=10, figsize=(700,700), cmap='interpolateGreens')
-
+        d3.matrix(df, stroke='red', vmax=10, figsize=(700, 700), cmap='interpolateGreens')
 
     def test_sankey(self):
         # Initialize
@@ -150,11 +211,11 @@ class Testd3blocks(unittest.TestCase):
 
         d3 = D3Blocks()
         df = d3.import_example('climate')
-        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d %H:%M:%S', filepath=None, notebook=False)
+        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d', filepath=None, notebook=False)
         assert html is not None
-        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d %H:%M:%S', filepath=None, notebook=True)
+        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d', filepath=None, notebook=True)
         assert html is None
-        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d %H:%M:%S', filepath='./test.html', notebook=False)
+        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d', filepath='./test.html', notebook=False)
         assert html is None
         
 
@@ -198,18 +259,18 @@ class Testd3blocks(unittest.TestCase):
         # import example
         df = d3.import_example('cancer')
         # Setup the tooltip
-        tooltip=df['labels'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).str[0:4].values
+        tooltip=df['labx'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).str[0:4].values
         # Set the size
         size = df['survival_months'].fillna(1).values / 10
         # Scatter
-        d3.scatter(df['x'].values,        # tSNE x-coordinates
-                   df['y'].values,        # tSNE y-coordinates
+        d3.scatter(df['tsneX'].values,        # tSNE x-coordinates
+                   df['tsneY'].values,        # tSNE y-coordinates
                    x1=df['PC1'].values,   # PC1 x-coordinates
                    y1=df['PC2'].values,   # PC2 y-coordinates
                    scale=True,            # Scale the 
                    label_radio=['tSNE', 'PCA'],
                    size=size,             # Size
-                   color=df['labels'].values, # List with hex colors or strings
+                   color=df['labx'].values, # List with hex colors or strings
                    stroke='#000000',      # Edge color
                    opacity=0.4,           # Opacity
                    tooltip=tooltip,       # Tooltip
@@ -218,11 +279,11 @@ class Testd3blocks(unittest.TestCase):
 
         d3 = D3Blocks()
         df = d3.import_example('cancer')
-        html = d3.scatter(df['x'].values, df['y'].values, filepath=None, notebook=False)
+        html = d3.scatter(df['tsneX'].values, df['tsneY'].values, filepath=None, notebook=False)
         assert html is not None
-        html = d3.scatter(df['x'].values, df['y'].values, filepath=None, notebook=True)
+        html = d3.scatter(df['tsneX'].values, df['tsneY'].values, filepath=None, notebook=True)
         assert html is None
-        html = d3.scatter(df['x'].values, df['y'].values, filepath='./test.html', notebook=False)
+        html = d3.scatter(df['tsneX'].values, df['tsneY'].values, filepath='./test.html', notebook=False)
         assert html is None
 
 
@@ -232,9 +293,9 @@ class Testd3blocks(unittest.TestCase):
         # import example
         df = d3.import_example('cancer')
         # Tooltip
-        tooltip=df['labels'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).values
+        tooltip=df['labx'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).values
         # Make the plot
-        d3.violin(x=df['labels'].values, # class labels on the x axis
+        d3.violin(x=df['labx'].values, # class labels on the x axis
                   y=df['age'].values,    # Age
                   tooltip=tooltip,       # Tooltip for hovering
                   bins=50,               # Bins used for the histogram
@@ -246,11 +307,11 @@ class Testd3blocks(unittest.TestCase):
         # Violin
         d3 = D3Blocks()
         df = d3.import_example('cancer')
-        html = d3.violin(x=df['labels'].values, y=df['age'].values, filepath=None, notebook=False)
+        html = d3.violin(x=df['labx'].values, y=df['age'].values, filepath=None, notebook=False)
         assert html is not None
-        html = d3.violin(x=df['labels'].values, y=df['age'].values, filepath=None, notebook=True)
+        html = d3.violin(x=df['labx'].values, y=df['age'].values, filepath=None, notebook=True)
         assert html is None
-        html = d3.violin(x=df['labels'].values, y=df['age'].values, filepath='./test.html', notebook=False)
+        html = d3.violin(x=df['labx'].values, y=df['age'].values, filepath='./test.html', notebook=False)
         assert html is None
 
     def test_particles(self):
@@ -268,61 +329,133 @@ class Testd3blocks(unittest.TestCase):
         assert html is None
         html = d3.particles('D3blocks', filepath='test.html', notebook=False)
         assert html is None
-        
+
+    def test_treemap(self):
+        # Load d3blocks
+        from d3blocks import D3Blocks
+        # Initialize
+        d3 = D3Blocks()
+        # Load example data
+        df = d3.import_example('energy')
+        # df = d3.import_example('animals')
+        # Plot
+        d3.treemap(df)
+
+        # Load d3blocks
+        from d3blocks import D3Blocks
+        # Initialize
+        d3 = D3Blocks(chart='Treemap', frame=True)
+        # Import example
+        df = d3.import_example('energy')
+        # Node properties
+        d3.set_node_properties(df)
+        d3.set_edge_properties(df)
+        # Show the chart
+        d3.show()
+
+    def test_tree(self):
+        # Load d3blocks
+        from d3blocks import D3Blocks
+        # Initialize
+        d3 = D3Blocks()
+        # Load example data
+        df = d3.import_example('energy')
+        # Plot
+        d3.tree(df)
+
+        # Load library
+        from d3blocks import D3Blocks
+        # Initialize
+        d3 = D3Blocks(verbose='info', chart='tree', frame=False)
+        # Import example
+        df = d3.import_example('energy')
+        # Set node properties
+        d3.set_node_properties(df)
+        # Set specific properties
+        d3.node_properties.get('Bio-conversion')['size'] = 30
+        d3.node_properties.get('Bio-conversion')['color'] = '#000000'
+        d3.node_properties.get('Bio-conversion')['tooltip'] = 'Title: P Operations<br><img src="https://source.unsplash.com/collection/385548/150x100">'
+        d3.node_properties.get('Bio-conversion')['edge_color'] = '#00FFFF'
+        d3.node_properties.get('Bio-conversion')['edge_size'] = 5
+        d3.node_properties.get('Bio-conversion')['opacity'] = 0.4
+        # Set properties for Losses
+        d3.node_properties.get('Losses')['color'] = '#FF0000'
+        d3.node_properties.get('Losses')['size'] = 15
+        d3.node_properties.get('Losses')['tooltip'] = ''
+        # Set properties for Agriculture
+        d3.node_properties.get('Agriculture')['color'] = '#00FFFF'
+        d3.node_properties.get('Agriculture')['size'] = 5
+        d3.node_properties.get('Agriculture')['edge_color'] = '#89CFF0'
+        d3.node_properties.get('Agriculture')['edge_size'] = 3
+        d3.node_properties.get('Agriculture')['opacity'] = 0.7
+        # Set edge properties
+        d3.set_edge_properties(df)
+        # Show chart
+        d3.show(hierarchy=[1, 2, 3, 4, 5, 6, 7, 8], filepath=r'c:\temp\tree.html')
+
+        # Load d3blocks
+        from d3blocks import D3Blocks
+        # Initialize
+        d3 = D3Blocks(chart='tree', frame=True)
+        # Import example
+        df = d3.import_example('energy')
+        # Node properties
+        d3.set_node_properties(df)
+        d3.set_edge_properties(df)
+        # Show the chart
+        d3.show()
 
     def test_movingbubbles(self):
         # Set color scheme
         d3 = D3Blocks()
         # Generate random data with various states
-        df = d3.import_example('random_time', n=10000, c=500, date_start="1-1-2000 00:10:05", date_stop="1-1-2001 23:59:59")
+        df = d3.import_example('random_time', n=10000, c=500, date_start="01-01-2000 00:10:05", date_stop="01-01-2001 23:59:59")
         # Make the moving bubbles chart.
         d3.movingbubbles(df, datetime='datetime', state='state', sample_id='sample_id', standardize=None, speed={"slow": 1000, "medium": 200, "fast": 10}, filepath='movingbubbles.html')
 
         d3 = D3Blocks()
-        df = d3.import_example('random_time', n=10000, c=300, date_start="1-1-2000 00:10:05", date_stop="1-1-2000 23:59:59")
+        df = d3.import_example('random_time', n=10000, c=300, date_start="01-01-2000 00:10:05", date_stop="01-01-2000 23:59:59")
         html = d3.movingbubbles(df, speed={"slow": 1000, "medium": 200, "fast": 10}, filepath=None, notebook=False)
         assert html is not None
         html = d3.movingbubbles(df, speed={"slow": 1000, "medium": 200, "fast": 10}, filepath=None, notebook=True)
         assert html is None
         html = d3.movingbubbles(df, speed={"slow": 1000, "medium": 200, "fast": 10}, filepath='test.html', notebook=False)
         assert html is None
-        
 
     def test_html(self):
         # Violin
         from d3blocks import D3Blocks
         d3 = D3Blocks()
         df = d3.import_example('cancer')
-        html = d3.violin(x=df['labels'].values, y=df['age'].values, filepath=None, notebook=False)
+        html = d3.violin(x=df['labx'].values, y=df['age'].values, filepath=None, notebook=False)
         assert html is not None
-        html = d3.violin(x=df['labels'].values, y=df['age'].values, filepath=None, notebook=True)
+        html = d3.violin(x=df['labx'].values, y=df['age'].values, filepath=None, notebook=True)
         assert html is None
-        html = d3.violin(x=df['labels'].values, y=df['age'].values, filepath='./test.html', notebook=False, showfig=False)
+        html = d3.violin(x=df['labx'].values, y=df['age'].values, filepath='./test.html', notebook=False, showfig=False)
         assert html is None
-        
-        
+
         # Timeseries
         from d3blocks import D3Blocks
         d3 = D3Blocks()
         df = d3.import_example('climate')
-        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d %H:%M:%S', filepath=None, notebook=False)
+        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d', filepath=None, notebook=False)
         assert html is not None
-        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d %H:%M:%S', filepath=None, notebook=True)
+        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d', filepath=None, notebook=True)
         assert html is None
-        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d %H:%M:%S', filepath='./test.html', notebook=False, showfig=False)
+        html = d3.timeseries(df, datetime='date', dt_format='%Y-%m-%d', filepath='./test.html', notebook=False, showfig=False)
         assert html is None
-        
+
         # Scatter
         from d3blocks import D3Blocks
         d3 = D3Blocks()
         df = d3.import_example('cancer')
-        html = d3.scatter(df['x'].values, df['y'].values, filepath=None, notebook=False)
+        html = d3.scatter(df['tsneX'].values, df['tsneY'].values, filepath=None, notebook=False)
         assert html is not None
-        html = d3.scatter(df['x'].values, df['y'].values, filepath=None, notebook=True)
+        html = d3.scatter(df['tsneX'].values, df['tsneY'].values, filepath=None, notebook=True)
         assert html is None
-        html = d3.scatter(df['x'].values, df['y'].values, filepath='./test.html', notebook=False, showfig=False)
+        html = d3.scatter(df['tsneX'].values, df['tsneY'].values, filepath='./test.html', notebook=False, showfig=False)
         assert html is None
-        
+
         # Sankey
         from d3blocks import D3Blocks
         d3 = D3Blocks()
@@ -333,8 +466,7 @@ class Testd3blocks(unittest.TestCase):
         assert html is None
         html = d3.sankey(df, filepath='./test.html', notebook=False, showfig=False)
         assert html is None
-        
-        
+
         # Particles
         from d3blocks import D3Blocks
         d3 = D3Blocks()
@@ -345,21 +477,18 @@ class Testd3blocks(unittest.TestCase):
         assert html is None
         html = d3.particles('D3blocks', filepath='test.html', notebook=False, showfig=False)
         assert html is None
-        
-        
+
         # Movingbubbles
         from d3blocks import D3Blocks
         d3 = D3Blocks()
-        df = d3.import_example('random_time', n=10000, c=100, date_start="1-1-2000 00:10:05", date_stop="1-1-2000 23:59:59")
+        df = d3.import_example('random_time', n=10000, c=100, date_start="01-01-2000 00:10:05", date_stop="01-01-2000 23:59:59")
         html = d3.movingbubbles(df, speed={"slow": 1000, "medium": 200, "fast": 10}, filepath=None, notebook=False)
         assert html is not None
         html = d3.movingbubbles(df, speed={"slow": 1000, "medium": 200, "fast": 10}, filepath=None, notebook=True)
         assert html is None
         html = d3.movingbubbles(df, speed={"slow": 1000, "medium": 200, "fast": 10}, filepath='test.html', notebook=False, showfig=False)
         assert html is None
-        
-        
-        # Imageslider
+
         from d3blocks import D3Blocks
         d3 = D3Blocks()
         img_before, img_after = d3.import_example('southern_nebula_internet')
@@ -369,7 +498,7 @@ class Testd3blocks(unittest.TestCase):
         assert html is None
         html = d3.imageslider(img_before, img_after, filepath='test.html', notebook=False, showfig=False)
         assert html is None
-        
+
         # Chord
         from d3blocks import D3Blocks
         d3 = D3Blocks()
@@ -380,4 +509,25 @@ class Testd3blocks(unittest.TestCase):
         assert html is None
         html = d3.chord(df, filepath='test.html', notebook=False, showfig=False)
         assert html is None
-        
+
+        # treemap
+        from d3blocks import D3Blocks
+        d3 = D3Blocks()
+        df = d3.import_example('energy')
+        html = d3.treemap(df, filepath=None, notebook=False)
+        assert html is not None
+        html = d3.treemap(df, filepath=None, notebook=True)
+        assert html is None
+        html = d3.treemap(df, filepath='test.html', notebook=False, showfig=False)
+        assert html is None
+
+        # Tree
+        from d3blocks import D3Blocks
+        d3 = D3Blocks()
+        df = d3.import_example('energy')
+        html = d3.tree(df, filepath=None, notebook=False)
+        assert html is not None
+        html = d3.tree(df, filepath=None, notebook=True)
+        assert html is None
+        html = d3.tree(df, filepath='test.html', notebook=False, showfig=False)
+        assert html is None

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Matrix &mdash; d3blocks d3blocks documentation</title>
@@ -12,12 +12,16 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6837f5c9"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MovingBubbles" href="MovingBubbles.html" />
+    <link rel="prev" title="Heatmap" href="Heatmap.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -32,7 +36,7 @@
             d3blocks
           </a>
               <div class="version">
-                1.2.12
+                1.4.7
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -58,25 +62,34 @@
 <li class="toctree-l1"><a class="reference internal" href="Installation.html#uninstall">Uninstall</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Blocks</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="Timeseries.html">Timeseries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Chord.html">Chord</a></li>
 <li class="toctree-l1"><a class="reference internal" href="d3graph.html">D3graph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="elasticgraph.html">Elasticgraph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Sankey.html">Sankey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Heatmap.html">Heatmap</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Matrix</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#input-data">Input Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#charts">Charts</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="MovingBubbles.html">MovingBubbles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Imageslider.html">Imageslider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Scatter.html">Scatter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Violin.html">Violin</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Treemap.html">Treemap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tree.html">Tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Circlepacking.html">circlepacking</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Maps.html">Maps</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Helper functions</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html">vec2adjmat</a></li>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html#module-d3blocks.d3blocks.D3Blocks.adjmat2vec">adjmat2vec</a></li>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html#module-d3blocks.d3blocks.D3Blocks.import_example">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="helper_functions.html#saving-charts">Saving Charts</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul>
@@ -115,7 +128,7 @@
            <div itemprop="articleBody">
              
   <section id="module-d3blocks.d3blocks.D3Blocks.matrix">
-<span id="matrix"></span><h1>Matrix<a class="headerlink" href="#module-d3blocks.d3blocks.D3Blocks.matrix" title="Permalink to this heading"></a></h1>
+<span id="matrix"></span><h1>Matrix<a class="headerlink" href="#module-d3blocks.d3blocks.D3Blocks.matrix" title="Link to this heading"></a></h1>
 <p>Matrix block.</p>
 <dl class="field-list">
 <dt class="field-odd">param df<span class="colon">:</span></dt>
@@ -254,6 +267,15 @@
 <dt class="field-even">type notebook<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool</p>
 </dd>
+<dt class="field-odd">param save_button<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p>True: Save button is shown in the HTML to save the image in svg.</p></li>
+<li><p>False: No save button is shown in the HTML.</p></li>
+</ul>
+</dd>
+<dt class="field-even">type save_button<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool, (default: True)</p>
+</dd>
 <dt class="field-odd">param reset_properties<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p>True: Reset the node_properties at each run.</p></li>
@@ -278,9 +300,10 @@
 <span class="go">              vmin=1,</span>
 <span class="go">              fontsize=10,</span>
 <span class="go">              title=&#39;D3blocks Matrix&#39;,</span>
-<span class="go">              filepath=&#39;d3blocks_matrix.html&#39;,</span>
 <span class="go">              figsize=[600, 300],</span>
-<span class="go">              cmap=&#39;interpolateGreens&#39;)</span>
+<span class="go">              cmap=&#39;interpolateGreens&#39;,</span>
+<span class="go">              filepath=&#39;matrix.html&#39;,</span>
+<span class="go">              )</span>
 </pre></div>
 </div>
 <p class="rubric">References</p>
@@ -289,7 +312,7 @@
 <li><p><a class="reference external" href="https://github.com/d3/d3-scale-chromatic">https://github.com/d3/d3-scale-chromatic</a></p></li>
 </ul>
 <section id="input-data">
-<h2>Input Data<a class="headerlink" href="#input-data" title="Permalink to this heading"></a></h2>
+<h2>Input Data<a class="headerlink" href="#input-data" title="Link to this heading"></a></h2>
 <p>The input dataset is a DataFrame with three column, source, target and weight.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#                      source            target   weight</span>
 <span class="c1"># 0      Agricultural &#39;waste&#39;    Bio-conversion  124.729</span>
@@ -309,7 +332,7 @@
 </div>
 </section>
 <section id="charts">
-<h2>Charts<a class="headerlink" href="#charts" title="Permalink to this heading"></a></h2>
+<h2>Charts<a class="headerlink" href="#charts" title="Link to this heading"></a></h2>
 <iframe src="https://erdogant.github.io\docs\d3blocks\matrix.html" height="600px" width="750px", frameBorder="0"></iframe><hr>
 <center>
         <script async src="https://media.ethicalads.io/media/client/ethicalads.min.js"></script>
@@ -323,7 +346,10 @@
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="Heatmap.html" class="btn btn-neutral float-left" title="Heatmap" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="MovingBubbles.html" class="btn btn-neutral float-right" title="MovingBubbles" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

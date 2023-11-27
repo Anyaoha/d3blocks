@@ -11,13 +11,10 @@ from ismember import ismember
 import numpy as np
 import pandas as pd
 from jinja2 import Environment, PackageLoader
-from pathlib import Path
-import os
-import time
 try:
-    from .. utils import convert_dataframe_dict, set_path, pre_processing, update_config, set_labels, write_html_file
+    from .. utils import convert_dataframe_dict, set_path, update_config, set_labels, write_html_file, include_save_to_svg_script
 except:
-    from utils import convert_dataframe_dict, set_path, pre_processing, update_config, set_labels, write_html_file
+    from utils import convert_dataframe_dict, set_path, update_config, set_labels, write_html_file, include_save_to_svg_script
 
 
 # %% Set configuration properties
@@ -39,6 +36,7 @@ def set_config(config={}, **kwargs):
     config['dt_format'] = kwargs.get('dt_format', '%d-%m-%Y %H:%M:%S')
     config['columns'] = kwargs.get('columns', {'datetime': config['datetime']})
     config['notebook'] = kwargs.get('notebook', False)
+    config['save_button'] = kwargs.get('save_button', True)
     # return
     return config
 
@@ -241,6 +239,8 @@ def write_html(X, config, logger=None):
     None.
 
     """
+    # Save button
+    save_script, show_save_button = include_save_to_svg_script(config['save_button'], title=config['title'])
     content = {
         'json_data': X,
         'COLOR': config['color'],
@@ -250,6 +250,9 @@ def write_html(X, config, logger=None):
         'WIDTH': config['figsize'][0],
         'HEIGHT': config['figsize'][1],
         'SUPPORT': config['support'],
+        'SAVE_TO_SVG_SCRIPT': save_script,
+        'SAVE_BUTTON_START': show_save_button[0],
+        'SAVE_BUTTON_STOP': show_save_button[1],
     }
 
     try:

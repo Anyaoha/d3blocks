@@ -10,7 +10,7 @@
 
    <iframe src="https://erdogant.github.io\docs\d3blocks\D3Blocks_white.html" height="170px" width="700px", frameBorder="0"></iframe>
 
-D3Blocks builts on the graphics of D3 Javascript to create the most visually attractive and useful charts with only a few lines of Python code.
+D3Blocks builds on the graphics of D3 Javascript to create the most visually attractive and useful charts with only a few lines of Python code.
 
 
 .. |fig1| image:: ../figs/summary.png
@@ -32,6 +32,26 @@ D3Blocks builts on the graphics of D3 Javascript to create the most visually att
 	.. code-block:: console
 
 	   pip install d3blocks
+
+
+   
+    * More detailed and structured story line about the charts can be found in the blogs*
+
+.. note::
+	#. `D3Blocks: The Python Library to Create Interactive and Standalone D3js Charts. <https://towardsdatascience.com/d3blocks-the-python-library-to-create-interactive-and-standalone-d3js-charts-3dda98ce97d4>`_
+
+	#. `Creating beautiful stand-alone interactive D3 charts with Python. <https://towardsdatascience.com/creating-beautiful-stand-alone-interactive-d3-charts-with-python-804117cb95a7>`_
+
+	#. `How to Create Storytelling Moving Bubbles Charts in d3js with Python. <https://towardsdatascience.com/how-to-create-storytelling-moving-bubbles-charts-in-d3js-with-python-b31cec7b8226>`_
+
+	#. `Hands-on Guide to Create beautiful Sankey Charts in d3js with Python. <https://towardsdatascience.com/hands-on-guide-to-create-beautiful-sankey-charts-in-d3js-with-python-8ddab43edb43>`_
+
+	#. `Get the Most Out of Your Scatterplot by Making It Interactive Using D3js and Python. <https://towardsdatascience.com/get-the-most-out-of-your-scatterplot-by-making-it-interactive-using-d3js-19939e3b046>`_
+
+	#. `Maximize your Insights By Choosing The Best Chart; Network, Heatmap, or Sankey? <https://medium.com/@erdogant/maximize-your-insights-by-choosing-the-best-chart-network-heatmap-or-sankey-d9b4165d7f16>`_
+
+	#. `Create and Explore the Landscape of Roles and Salaries in Data Science <https://towardsdatascience.com/create-and-explore-the-landscape-of-roles-and-salaries-in-data-science-926092f616ca>`_
+
 
 -----------------------------------
 
@@ -63,12 +83,16 @@ Contents
    elasticgraph
    Sankey
    Heatmap
+   Matrix
    MovingBubbles
    Imageslider
    Scatter
    Violin
    Particles
    Treemap
+   Tree
+   Circlepacking
+   Maps
 
 .. toctree::
    :maxdepth: 1

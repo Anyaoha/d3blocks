@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chord &mdash; d3blocks d3blocks documentation</title>
@@ -12,9 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6837f5c9"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,7 +36,7 @@
             d3blocks
           </a>
               <div class="version">
-                1.2.12
+                1.4.7
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -71,18 +73,23 @@
 <li class="toctree-l1"><a class="reference internal" href="elasticgraph.html">Elasticgraph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Sankey.html">Sankey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Heatmap.html">Heatmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Matrix.html">Matrix</a></li>
 <li class="toctree-l1"><a class="reference internal" href="MovingBubbles.html">MovingBubbles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Imageslider.html">Imageslider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Scatter.html">Scatter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Violin.html">Violin</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Treemap.html">Treemap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tree.html">Tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Circlepacking.html">circlepacking</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Maps.html">Maps</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Helper functions</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html">vec2adjmat</a></li>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html#module-d3blocks.d3blocks.D3Blocks.adjmat2vec">adjmat2vec</a></li>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html#module-d3blocks.d3blocks.D3Blocks.import_example">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="helper_functions.html#saving-charts">Saving Charts</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul>
@@ -121,7 +128,7 @@
            <div itemprop="articleBody">
              
   <section id="module-d3blocks.d3blocks.D3Blocks.chord">
-<span id="chord"></span><h1>Chord<a class="headerlink" href="#module-d3blocks.d3blocks.D3Blocks.chord" title="Permalink to this heading"></a></h1>
+<span id="chord"></span><h1>Chord<a class="headerlink" href="#module-d3blocks.d3blocks.D3Blocks.chord" title="Link to this heading"></a></h1>
 <p>Chord block.</p>
 <p>A chord represents flows or connections between several entities or nodes.
 Each entity is represented by a fragment on the outer part of the circular layout.
@@ -171,16 +178,43 @@ Then, arcs are drawn between each entity. The size of the arc is proportional to
 <dt class="field-even">type opacity<span class="colon">:</span></dt>
 <dd class="field-even"><p>(default: ‘source’)</p>
 </dd>
+<dt class="field-odd">param ordering<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Sort the labels.</dt><dd><ul class="simple">
+<li><p>‘ascending’</p></li>
+<li><p>‘descending’</p></li>
+<li><p>‘’: Do not sort</p></li>
+<li><p>[‘label1’, ‘label2’, ‘label3’]: Custom sort. Note that all labels shoul be included only once for the best result.</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">type ordering<span class="colon">:</span></dt>
+<dd class="field-even"><p>(default: ‘ascending’)</p>
+</dd>
 <dt class="field-odd">param fontsize<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The Fontsize.</p>
 </dd>
 <dt class="field-even">type fontsize<span class="colon">:</span></dt>
 <dd class="field-even"><p>int, (default: 8)</p>
 </dd>
+<dt class="field-odd">param arrowhead<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>The head of the arrow.</dt><dd><ul class="simple">
+<li><p>-1: No arrow</p></li>
+<li><p>10: default</p></li>
+<li><p>50: The larger the more pointy the arrow becomes</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">type arrowhead<span class="colon">:</span></dt>
+<dd class="field-even"><p>int, (default: 10)</p>
+</dd>
 <dt class="field-odd">param cmap<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt>colormap is only used in case color=None. All colors can be reversed with ‘_r’, e.g. ‘binary’ to ‘binary_r’</dt><dd><ul class="simple">
-<li><p>‘Set1’, ‘Set2’, ‘rainbow’, ‘bwr’, ‘binary’, ‘seismic’, ‘Blues’, ‘Reds’, ‘Pastel1’, ‘Paired’, ‘twilight’, ‘hsv’</p></li>
+<li><p>‘tab20c’, ‘Set1’, ‘Set2’, ‘rainbow’, ‘bwr’, ‘binary’, ‘seismic’, ‘Blues’, ‘Reds’, ‘Pastel1’, ‘Paired’, ‘twilight’, ‘hsv’</p></li>
 </ul>
 </dd>
 </dl>
@@ -251,6 +285,15 @@ Then, arcs are drawn between each entity. The size of the arc is proportional to
 <dt class="field-even">type notebook<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool</p>
 </dd>
+<dt class="field-odd">param save_button<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p>True: Save button is shown in the HTML to save the image in svg.</p></li>
+<li><p>False: No save button is shown in the HTML.</p></li>
+</ul>
+</dd>
+<dt class="field-even">type save_button<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool, (default: True)</p>
+</dd>
 <dt class="field-odd">param reset_properties<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p>True: Reset the node_properties at each run.</p></li>
@@ -316,12 +359,34 @@ Then, arcs are drawn between each entity. The size of the arc is proportional to
 <span class="gp">&gt;&gt;&gt; </span><span class="n">d3</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Change the order of the labels.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Load d3blocks</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">d3blocks</span> <span class="kn">import</span> <span class="n">D3Blocks</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Import example</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">d3</span><span class="o">.</span><span class="n">import_example</span><span class="p">(</span><span class="s1">&#39;energy&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Custom order of the labels</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d3</span><span class="o">.</span><span class="n">chord</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">ordering</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Sort Ascending</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d3</span><span class="o">.</span><span class="n">chord</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">ordering</span><span class="o">=</span><span class="s1">&#39;ascending&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Sort Descending</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d3</span><span class="o">.</span><span class="n">chord</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">ordering</span><span class="o">=</span><span class="s1">&#39;descending&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1">#</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Do not sort</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d3</span><span class="o">.</span><span class="n">chord</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">ordering</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 <p class="rubric">References</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://d3blocks.github.io/d3blocks/pages/html/Chord.html">https://d3blocks.github.io/d3blocks/pages/html/Chord.html</a></p></li>
 </ul>
 <section id="input-data">
-<h2>Input Data<a class="headerlink" href="#input-data" title="Permalink to this heading"></a></h2>
+<h2>Input Data<a class="headerlink" href="#input-data" title="Link to this heading"></a></h2>
 <p>The input dataset is a DataFrame with three column, source, target and weight.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#       source       target  weight</span>
 <span class="c1"># 0      Aemon        Grenn       5</span>
@@ -341,7 +406,7 @@ Then, arcs are drawn between each entity. The size of the arc is proportional to
 </div>
 </section>
 <section id="chart">
-<h2>Chart<a class="headerlink" href="#chart" title="Permalink to this heading"></a></h2>
+<h2>Chart<a class="headerlink" href="#chart" title="Link to this heading"></a></h2>
 <iframe src="https://erdogant.github.io\docs\d3blocks\chord.html" height="750px" width="775px", frameBorder="0"></iframe><hr>
 <center>
         <script async src="https://media.ethicalads.io/media/client/ethicalads.min.js"></script>

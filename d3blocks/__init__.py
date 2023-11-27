@@ -1,12 +1,16 @@
 from d3blocks.d3blocks import D3Blocks
-
+from datazets import get as import_example
 from d3blocks.utils import (
     normalize,
+    scale,
+    adjmat2vec,
+    vec2adjmat,
+    convert_flare2source_target,
     )
 
 __author__ = 'Erdogan Taskesen, Oliver Verver'
 __email__ = 'erdogant@gmail.com, mail@oliver3.nl'
-__version__ = '1.2.13'
+__version__ = '1.4.6'
 
 # module level doc-string
 __doc__ = """
@@ -26,5 +30,6 @@ References
 * Scatter: https://towardsdatascience.com/get-the-most-out-of-your-scatterplot-by-making-it-interactive-using-d3js-19939e3b046
 * Sankey: https://towardsdatascience.com/hands-on-guide-to-create-beautiful-sankey-charts-in-d3js-with-python-8ddab43edb43
 * Movingbubbles: https://towardsdatascience.com/how-to-create-storytelling-moving-bubbles-charts-in-d3js-with-python-b31cec7b8226
+* Comparison of Sankey, D3graph and Heatmap: https://medium.com/@erdogant/maximize-your-insights-by-choosing-the-best-chart-network-heatmap-or-sankey-d9b4165d7f16
 
 """

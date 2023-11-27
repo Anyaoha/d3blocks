@@ -11,9 +11,9 @@ import zipfile
 import webbrowser
 import random
 import time
-from typing import List, Union, Tuple
 from elasticgraph import Elasticgraph
 import d3graph as d3network
+import datazets as dz
 
 import d3blocks.movingbubbles.Movingbubbles as Movingbubbles
 import d3blocks.timeseries.Timeseries as Timeseries
@@ -26,6 +26,9 @@ import d3blocks.particles.Particles as Particles
 import d3blocks.heatmap.Heatmap as Heatmap
 import d3blocks.matrix.Matrix as Matrix
 import d3blocks.treemap.Treemap as Treemap
+import d3blocks.circlepacking.Circlepacking as Circlepacking
+import d3blocks.tree.Tree as Tree
+import d3blocks.maps.Maps as Maps
 import d3blocks.utils as utils
 
 # ###################### DEBUG ONLY ###################
@@ -40,6 +43,9 @@ import d3blocks.utils as utils
 # import heatmap.Heatmap as Heatmap
 # import matrix.Matrix as Matrix
 # import treemap.Treemap as Treemap
+# import circlepacking.Circlepacking as Circlepacking
+# import tree.Tree as Tree
+# import maps.Maps as Maps
 # import utils
 # #####################################################
 
@@ -83,10 +89,11 @@ class D3Blocks():
     * Scatter: https://towardsdatascience.com/get-the-most-out-of-your-scatterplot-by-making-it-interactive-using-d3js-19939e3b046
     * Sankey: https://towardsdatascience.com/hands-on-guide-to-create-beautiful-sankey-charts-in-d3js-with-python-8ddab43edb43
     * Movingbubbles: https://towardsdatascience.com/how-to-create-storytelling-moving-bubbles-charts-in-d3js-with-python-b31cec7b8226
+    * Comparison of Sankey, D3graph and Heatmap: https://medium.com/@erdogant/maximize-your-insights-by-choosing-the-best-chart-network-heatmap-or-sankey-d9b4165d7f16
 
     """
 
-    def __init__(self, chart: str = None, frame: bool = True, verbose: int = 20, support='text'):
+    def __init__(self, chart: str = None, frame: bool = True, verbose: int = 20, support: str = 'text') -> None:
         """Initialize d3blocks with user-defined parameters."""
         # Set the logger
         if chart is not None: chart = str.capitalize(chart)
@@ -113,10 +120,11 @@ class D3Blocks():
                   cmap: str = 'Turbo',
                   color_background: str = '#000000',
                   title: str = 'Particles - D3blocks',
-                  filepath: (None, str) = 'particles.html',
-                  figsize=[900, 200],
+                  filepath: str = 'particles.html',
+                  figsize = [900, 200],
                   showfig: bool = True,
                   notebook: bool = False,
+                  save_button: bool = False,
                   overwrite: bool = True):
         """Particles block.
 
@@ -159,6 +167,9 @@ class D3Blocks():
         notebook : bool, optional
                 * True: Use IPython to show chart in notebooks.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         overwrite : bool, optional (default: True)
                 * True: Overwrite the output html in the destination directory.
                 * False: Do not overwrite
@@ -187,7 +198,6 @@ class D3Blocks():
                          fontsize=130,
                          cmap='Turbo',
                          color_background='#ffffff')
-        >>> #
 
         References
         ----------
@@ -212,6 +222,7 @@ class D3Blocks():
         self.config['fontsize'] = '"' + str(fontsize) + 'px"'
         self.config['spacing'] = spacing
         self.config['notebook'] = notebook
+        self.config['save_button'] = save_button
         self.chart = eval('Particles')
 
         # Create the plot
@@ -222,24 +233,25 @@ class D3Blocks():
     def violin(self,
                x,
                y,
-               size=5,
-               color=None,
-               x_order=None,
-               opacity=0.6,
-               stroke='#000000',
-               tooltip=None,
-               fontsize=12,
-               fontsize_axis=12,
-               cmap='inferno',
-               bins=50,
-               ylim=[None, None],
-               title='Violin - D3blocks',
-               filepath='violin.html',
-               figsize=[None, None],
-               showfig=True,
-               overwrite=True,
-               notebook=False,
-               reset_properties=True):
+               size = 5,
+               color = None,
+               x_order = None,
+               opacity = 0.6,
+               stroke = '#000000',
+               tooltip = None,
+               fontsize = 12,
+               fontsize_axis: int = 12,
+               cmap: str = 'inferno',
+               bins: int = 50,
+               ylim = [None, None],
+               title: str = 'Violin - D3blocks',
+               filepath = 'violin.html',
+               figsize = [None, None],
+               showfig: bool = True,
+               overwrite: bool = True,
+               notebook: bool = False,
+               save_button: bool = True,
+               reset_properties: bool = True):
         """Violin block.
 
         The Violin plot allows to visualize the distribution of a numeric variable for one or several groups.
@@ -277,7 +289,7 @@ class D3Blocks():
             Text fontsize for the x-axis and y-axis.
         cmap : String, (default: 'inferno')
             All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
-                * 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
+                * 'tab20c', 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
         bins : Int (default: 50)
             The bin size is the 'resolution' of the violin plot.
         ylim : tuple, (default: [None, None])
@@ -304,6 +316,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -331,12 +346,12 @@ class D3Blocks():
         >>> df = d3.import_example('cancer')
         >>> #
         >>> # Set some input variables.
-        >>> tooltip = df['labels'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).values
+        >>> tooltip = df['labx'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).values
         >>> fontsize = df['age'].values
         >>> # fontsize = 16  # Set one fontsize for all nodes
         >>> #
         >>> # Create the chart
-        >>> d3.violin(x=df['labels'].values, y=df['age'].values, fontsize=fontsize, tooltip=tooltip, bins=50, size=df['survival_months'].values/10, x_order=['acc','kich', 'brca','lgg','blca','coad','ov'], filepath='violine.html', figsize=[900, None])
+        >>> d3.violin(x=df['labx'].values, y=df['age'].values, fontsize=fontsize, tooltip=tooltip, bins=50, size=df['survival_months'].values/10, x_order=['acc','kich', 'brca','lgg','blca','coad','ov'], filepath='violine.html', figsize=[900, None])
         >>> #
 
         Examples
@@ -351,7 +366,7 @@ class D3Blocks():
         >>> df = d3.import_example('cancer')
         >>> #
         >>> # Set the properties by providing the labels
-        >>> d3.set_edge_properties(x=df['labels'].values, y=df['age'].values, size=df['survival_months'].values/10, x_order=['acc','kich', 'brca','lgg','blca','coad','ov'])
+        >>> d3.set_edge_properties(x=df['labx'].values, y=df['age'].values, size=df['survival_months'].values/10, x_order=['acc','kich', 'brca','lgg','blca','coad','ov'])
         >>> #
         >>> # Set specific node properties.
         >>> d3.edge_properties.loc[0,'size']=50
@@ -375,7 +390,7 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Violin', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, cmap=cmap, bins=bins, ylim=ylim, x_order=x_order, reset_properties=reset_properties, notebook=notebook, fontsize=fontsize, fontsize_axis=fontsize_axis, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, cmap=cmap, bins=bins, ylim=ylim, x_order=x_order, reset_properties=reset_properties, notebook=notebook, fontsize=fontsize, fontsize_axis=fontsize_axis, save_button=save_button, logger=logger)
         # Remvove quotes from source-target node_properties
         self.edge_properties = self.chart.set_edge_properties(x, y, config=self.config, color=color, size=size, stroke=stroke, opacity=opacity, tooltip=tooltip, cmap=self.config['cmap'], x_order=self.config['x_order'], fontsize=self.config['fontsize'], logger=logger)
         # Set default label properties
@@ -406,10 +421,11 @@ class D3Blocks():
                 ylim=[None, None],
                 title='Scatter - D3blocks',
                 filepath='scatter.html',
-                figsize=[900, 600],
-                showfig=True,
+                figsize = [900, 600],
+                showfig = True,
                 overwrite=True,
                 notebook=False,
+                save_button: bool = True,
                 reset_properties=True,
                 ):
         """Scatterplot block.
@@ -457,7 +473,7 @@ class D3Blocks():
             labels of the samples.
         cmap : String, (default: 'inferno')
             All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
-                * 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
+                * 'tab20c', 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
         scale: Bool, optional
             Scale datapoints. The default is False.
         label_radio: List ['(x, y)', '(x1, y1)', '(x2, y2)']
@@ -487,6 +503,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -515,13 +534,13 @@ class D3Blocks():
         >>> #
         >>> # Set size and tooltip
         >>> size = df['survival_months'].fillna(1).values / 20
-        >>> tooltip = df['labels'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).str[0:4].values
+        >>> tooltip = df['labx'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).str[0:4].values
         >>> #
         >>> # Scatter plot
-        >>> d3.scatter(df['x'].values,
-                       df['y'].values,
+        >>> d3.scatter(df['tsneX'].values,
+                       df['tsneY'].values,
                        size=size,
-                       color=df.index.values,
+                       color=df['labx'].values,
                        stroke='#000000',
                        opacity=0.4,
                        tooltip=tooltip,
@@ -531,14 +550,14 @@ class D3Blocks():
         Examples
         --------
         >>> # Scatter plot with transitions. Note that scale is set to True to make the axis comparible to each other
-        >>> d3.scatter(df['x'].values,
-                       df['y'].values,
+        >>> d3.scatter(df['tsneX'].values,
+                       df['tsneY'].values,
                        x1=df['PC1'].values,
                        y1=df['PC2'].values,
                        label_radio=['tSNE', 'PCA'],
                        scale=True,
                        size=size,
-                       color=df.index.values,
+                       color=df['labx'].values,
                        stroke='#000000',
                        opacity=0.4,
                        tooltip=tooltip,
@@ -548,8 +567,8 @@ class D3Blocks():
         Examples
         --------
         >>> # Scatter plot with transitions. Note that scale is set to True to make the axis comparible to each other
-        >>> d3.scatter(df['x'].values,
-                       df['y'].values,
+        >>> d3.scatter(df['tsneX'].values,
+                       df['tsneY'].values,
                        x1=df['PC1'].values,
                        y1=df['PC2'].values,
                        x2=df['PC2'].values,
@@ -557,7 +576,7 @@ class D3Blocks():
                        label_radio=['tSNE', 'PCA', 'PCA_reverse'],
                        scale=True,
                        size=size,
-                       color=df.index.values,
+                       color=df['labx'].values,
                        stroke='#000000',
                        opacity=0.4,
                        tooltip=tooltip,
@@ -576,14 +595,14 @@ class D3Blocks():
         >>> df = d3.import_example('cancer')
         >>> #
         >>> # Set properties
-        >>> d3.set_edge_properties(df['x'].values,
-                                   df['y'].values,
+        >>> d3.set_edge_properties(df['tsneX'].values,
+                                   df['tsneY'].values,
                                    x1=df['PC1'].values,
                                    y1=df['PC2'].values,
                                    label_radio=['tSNE','PCA'],
                                    size=df['survival_months'].fillna(1).values / 10,
-                                   color=df.index.values,
-                                   tooltip=df['labels'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).str[0:4].values,
+                                   color=df['labx'].values,
+                                   tooltip=df['labx'].values + ' <br /> Survival: ' + df['survival_months'].astype(str).str[0:4].values,
                                    scale=True)
         >>> #
         >>> # Show the chart
@@ -611,7 +630,7 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Scatter', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, cmap=cmap, scale=scale, ylim=ylim, xlim=xlim, label_radio=label_radio, color_background=color_background, reset_properties=reset_properties, notebook=notebook, jitter=jitter, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, cmap=cmap, scale=scale, ylim=ylim, xlim=xlim, label_radio=label_radio, color_background=color_background, reset_properties=reset_properties, notebook=notebook, jitter=jitter, save_button=save_button, logger=logger)
         # Check exceptions
         Scatter.check_exceptions(x, y, x1, y1, x2, y2, size, color, tooltip, logger)
         # Set node properties
@@ -625,7 +644,9 @@ class D3Blocks():
               df,
               color='source',
               opacity='source',
+              ordering='ascending',
               fontsize=10,
+              arrowhead=10,
               cmap='tab20',
               title='Chord - D3blocks',
               filepath='chord.html',
@@ -633,6 +654,7 @@ class D3Blocks():
               showfig=True,
               overwrite=True,
               notebook=False,
+              save_button=True,
               reset_properties=True,
               ):
         """Chord block.
@@ -663,11 +685,22 @@ class D3Blocks():
                 * 'target': Opacity of edges/links similar to that of target-opacity node.
                 * 0.8: All links have the same opacity.
                 * [0.1, 0.75,...]: Set opacity per edge/link.
+        ordering: (default: 'ascending')
+            Sort the labels.
+                * 'ascending'
+                * 'descending'
+                * '': Do not sort
+                * ['label1', 'label2', 'label3']: Custom sort. Note that all labels shoul be included only once for the best result.
         fontsize : int, (default: 8)
             The Fontsize.
+        arrowhead : int, (default: 10)
+            The head of the arrow.
+                * -1: No arrow
+                * 10: default
+                * 50: The larger the more pointy the arrow becomes
         cmap : String, (default: 'tab20')
             colormap is only used in case color=None. All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
-                * 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
+                * 'tab20c', 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
         title : String, (default: None)
             Title of the figure.
                 * 'Chord'
@@ -689,6 +722,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -752,6 +788,28 @@ class D3Blocks():
         >>> # Show the chart
         >>> d3.show()
 
+        Examples
+        --------
+        >>> # Change the order of the labels.
+        >>> #
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Import example
+        >>> df = d3.import_example('energy')
+        >>> #
+        >>> # Custom order of the labels
+        >>> d3.chord(df, ordering=np.sort(np.unique(df['source'].values)))
+        >>> #
+        >>> # Sort Ascending
+        >>> d3.chord(df, ordering='ascending')
+        >>> #
+        >>> # Sort Descending
+        >>> d3.chord(df, ordering='descending')
+        >>> #
+        >>> # Do not sort
+        >>> d3.chord(df, ordering='')
+
         References
         ----------
         * https://d3blocks.github.io/d3blocks/pages/html/Chord.html
@@ -762,7 +820,7 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Chord', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, fontsize=fontsize, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, cmap=cmap, notebook=notebook, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, fontsize=fontsize, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, cmap=cmap, notebook=notebook, ordering=ordering, arrowhead=arrowhead, save_button=save_button, logger=logger)
         # Set node properties
         if reset_properties or (not hasattr(self, 'node_properties')):
             self.set_node_properties(df, cmap=cmap)
@@ -779,7 +837,7 @@ class D3Blocks():
                     background='#000000',
                     title='Imageslider - D3blocks',
                     filepath='imageslider.html',
-                    figsize=[None, None],
+                    figsize = [None, None],
                     showfig=True,
                     notebook=False,
                     overwrite=True):
@@ -879,6 +937,7 @@ class D3Blocks():
         self.config['overwrite'] = overwrite
         self.config['notebook'] = notebook
         self.config['figsize'] = figsize
+        self.config['save_button'] = False
         self.chart = eval('Imageslider')
         # if self.config['filepath'] is None: raise Exception('filepath can not be None.')
 
@@ -893,8 +952,9 @@ class D3Blocks():
 
     def sankey(self,
                df,
+               color=None,
                node={"align": "justify", "width": 15, "padding": 15, "color": "currentColor"},
-               link={"color": "source-target", "stroke_opacity": 0.5, 'color_static': '#D3D3D3'},
+               link={"color": "source-target", "stroke_opacity": 0.5, 'color_static': '#d3d3d3'},
                margin={"top": 5, "right": 1, "bottom": 5, "left": 1},
                title='Sankey - D3blocks',
                filepath='sankey.html',
@@ -902,6 +962,7 @@ class D3Blocks():
                showfig=True,
                overwrite=True,
                notebook=False,
+               save_button: bool = True,
                reset_properties=True,
                ):
         """Sankey block.
@@ -957,6 +1018,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -989,7 +1053,8 @@ class D3Blocks():
 
         Examples
         --------
-        >>> # Load d3blocks
+        >>> # Adjust node and edge properties
+        >>> #
         >>> from d3blocks import D3Blocks
         >>> #
         >>> # Initialize
@@ -1008,6 +1073,29 @@ class D3Blocks():
         >>> # Show the chart
         >>> d3.show()
 
+        Examples
+        --------
+        >>> # Create Custom colors
+        >>> #
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks(chart='Sankey', frame=True)
+        >>> #
+        >>> # Import example
+        >>> df = d3.import_example('energy')
+        >>> #
+        >>> # Custom color the nodes
+        >>> html = d3.sankey(df.copy(), filepath=r'c:\temp\sankey.html', color={'Nuclear': '#FF0000', 'Wind':'#000000', 'Electricity grid':'#FF0000'})
+        >>> #
+        >>> # Alternatively:
+        >>> d3 = D3Blocks(chart='Sankey', frame=True)
+        >>> df = d3.import_example(data='energy')
+        >>> d3.set_node_properties(df, color={'Nuclear': '#FF0000', 'Wind':'#FF0000', 'Electricity grid':'#7FFFD4', 'Bio-conversion':'#000000', 'Industry': '#000000'})
+        >>> d3.set_edge_properties(df, color='target', opacity='target')
+        >>> d3.show(filepath=r'c:\temp\sankey.html')
+        >>> #
+
         References
         ----------
         * https://d3blocks.github.io/d3blocks/pages/html/Sankey.html
@@ -1018,10 +1106,12 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Sankey', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, link=link, node=node, margin=margin, reset_properties=reset_properties, notebook=notebook, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, link=link, node=node, margin=margin, reset_properties=reset_properties, notebook=notebook, save_button=save_button, logger=logger)
+        # Cleaning of data
+        # df = utils.pre_processing(df, clean_source_target=True)
         # Set default label properties
         if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
-            self.set_node_properties(df, cmap=self.config['cmap'])
+            self.set_node_properties(df, cmap=self.config['cmap'], color=color)
         # Set edge properties
         self.set_edge_properties(df)
         # Create the plot
@@ -1043,7 +1133,7 @@ class D3Blocks():
                       timedelta: str = 'minutes',
                       standardize: str = 'samplewise',
                       speed: dict = {"slow": 1000, "medium": 200, "fast": 50},
-                      figsize: tuple = [780, 800],
+                      figsize = [700, 800],
                       note: str = None,
                       time_notes: str = None,
                       title: str = 'Movingbubbles - D3Blocks',
@@ -1051,9 +1141,10 @@ class D3Blocks():
                       showfig: bool = True,
                       overwrite: bool = True,
                       notebook: bool = False,
+                      save_button: bool = True,
                       reset_properties: bool = True,
                       ):
-        """MovingBubbles block.
+        """Movingbubbles block.
 
         The MovingBubbles provides insights into when one action follows the other across time. It can help to
         understand the movements of entities, and whether clusters occur at specific time points and state(s).
@@ -1122,7 +1213,7 @@ class D3Blocks():
             time_notes.append[{"start_minute": 6, "stop_minute": 10, "note": "Enter your second note here and it is shown between 6 min and 10 min."}]
         cmap : String, (default: 'Set1')
             All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
-                * 'Set1', 'Set2'
+                * 'tab20c', 'Set1', 'Set2'
                 * 'rainbow', 'bwr', 'binary', 'seismic'
                 * 'Blues', 'Reds', 'Pastel1', 'Paired'
                 * 'twilight', 'hsv', 'inferno'
@@ -1147,6 +1238,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -1228,7 +1322,7 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Movingbubbles', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, timedelta=timedelta, speed=speed, damper=damper, note=note, time_notes=time_notes, fontsize=fontsize, standardize=standardize, center=center, datetime=datetime, sample_id=sample_id, state=state, reset_properties=reset_properties, cmap=cmap, dt_format=dt_format, notebook=notebook, color_method=color_method, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, timedelta=timedelta, speed=speed, damper=damper, note=note, time_notes=time_notes, fontsize=fontsize, standardize=standardize, center=center, datetime=datetime, sample_id=sample_id, state=state, reset_properties=reset_properties, cmap=cmap, dt_format=dt_format, notebook=notebook, color_method=color_method, save_button=save_button, logger=logger)
         # Set node properties
         if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
             self.set_node_properties(df[self.config['state']].values, center=self.config['center'], cmap=self.config['cmap'], logger=logger)
@@ -1251,6 +1345,7 @@ class D3Blocks():
                    showfig=True,
                    overwrite=True,
                    notebook=False,
+                   save_button: bool = True,
                    reset_properties=True,
                    ):
         """Timeseries block.
@@ -1279,7 +1374,7 @@ class D3Blocks():
             Fontsize of the fonts in the circle.
         cmap : String, (default: 'Set1')
             All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
-                * 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv', 'inferno'
+                * 'tab20c', 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv', 'inferno'
         title : String, (default: None)
             Title of the figure.
                 * 'Timeseries'
@@ -1301,6 +1396,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -1365,7 +1463,7 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Timeseries', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, fontsize=fontsize, sort_on_date=sort_on_date, datetime=datetime, cmap=cmap, whitelist=whitelist, reset_properties=reset_properties, dt_format=dt_format, notebook=notebook, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, fontsize=fontsize, sort_on_date=sort_on_date, datetime=datetime, cmap=cmap, whitelist=whitelist, reset_properties=reset_properties, dt_format=dt_format, notebook=notebook, save_button=save_button, logger=logger)
         # Set node properties
         if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
             self.set_node_properties(df.columns.values, cmap=self.config['cmap'], whitelist=self.config['whitelist'], datetime=self.config['datetime'])
@@ -1378,23 +1476,27 @@ class D3Blocks():
 
     def heatmap(self,
                 df,
-                classlabel='cluster',
+                scaler='zscore',
+                color='cluster',
                 cmap='Set2',
                 filepath='heatmap.html',
                 title='Heatmap - D3blocks',
                 stroke='red',
+                fontsize=10,
+                fontsize_mouseover=18,
                 description=None,
-                vmax=None,
                 cluster_params = {'cluster': 'agglomerative',
                                   'evaluate': 'silhouette',
                                   'metric': 'euclidean',
-                                  'linkage': 'ward',
-                                  'min_clust': 2,
-                                  'max_clust': 25},
+                                  'linkage': 'complete',
+                                  'min_clust': 3,
+                                  'max_clust': 25,
+                                  'normalize': False},
                 figsize=[720, 720],
                 showfig=True,
                 overwrite=True,
                 notebook=False,
+                save_button: bool = True,
                 reset_properties=True,
                 ):
         """Heatmap block.
@@ -1408,26 +1510,30 @@ class D3Blocks():
         ----------
         df : pd.DataFrame()
             Input data. The index and column names are used for the row/column naming.
-        classlabel : str or list
+        scaler : str, (default: 'zscore')
+            Scale the edge-width using the following scaler:
+            'zscore' : Scale values to Z-scores.
+            'minmax' : The sklearn scaler will shrink the distribution between minmax.
+            None : No scaler is used.
+        color : str or list
             Class label to color the clustering.
                 * 'cluster': colors are based on clustering
                 * 'label': colors are based on the presence of unique labels
-                * [1,2,1,..]: colors are based on the input classlabels
         stroke : String, (default: 'red').
             Color of the recangle when hovering over a cell.
                 * 'red'
                 * 'black'
+        fontsize : int, (default: 10)
+            The fontsize of the columns and rows
+        fontsize_mouseover : int, (default: 10)
+            The fontsize of the columns and rows with mouse-over
         description : String, (default: 'Heatmap description')
             Description text of the heatmap.
-        vmax : Bool, (default: 100).
-            Range of colors starting with maximum value. Increasing this value will color the cells more discrete.
-                * 1 : cells above value >1 are capped.
-            None : cells are colored based on the maximum value in the input data.
         cluster_params : dict (defaults)
             Parameters for clustering the data and using the cluster labels to color the heatmap. See references for more information.
         cmap : String, (default: 'Set1')
             All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
-                * 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv', 'inferno'
+                * 'tab20c', 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv', 'inferno'
         title : String, (default: None)
             Title of the figure.
                 * 'Heatmap'
@@ -1449,6 +1555,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -1463,10 +1572,29 @@ class D3Blocks():
         >>> #
         >>> # Load example data
         >>> df = d3.import_example('stormofswords')  # 'energy'
-        >>> df = d3.vec2adjmat(df['source'], df['target'], weight=df['weight'], symmetric=True)
         >>> #
         >>> # Plot
         >>> d3.heatmap(df)
+        >>> #
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks()
+        >>> #
+        >>> # Load example data
+        >>> df = d3.import_example('energy')
+        >>> #
+        >>> # Change cluster parameters
+        >>> d3.heatmap(df, cluster_params={'evaluate':'dbindex',
+        >>>                                'metric':'hamming',
+        >>>                                'linkage':'complete',
+        >>>                                'normalize': False,
+        >>>                                'min_clust': 3,
+        >>>                                'max_clust': 15})
         >>> #
 
         Examples
@@ -1476,11 +1604,14 @@ class D3Blocks():
         >>> #
         >>> # Load example data
         >>> df = d3.import_example('bigbang')
-        >>> df = d3.vec2adjmat(df['source'], df['target'], weight=df['weight'])
         >>> #
-        >>> # Plot
-        >>> d3.heatmap(df, classlabel=[1,1,1,2,2,2,3])
+        >>> # Plot and color on label
+        >>> d3.heatmap(df, color=[1,1,1,2,2,2,3])
+        >>> d3.node_properties
         >>> #
+        >>> # Plot and specify the hex color
+        >>> d3.heatmap(df, color=['#FFF000', '#FFF000', '#FFF000', '#000FFF' , '#000FFF', '#000FFF', '#000FFF'])
+        >>> d3.node_properties
 
         References
         ----------
@@ -1494,40 +1625,43 @@ class D3Blocks():
             logger.warning('Input data should contain unique index names otherwise d3js randomly removes the non-unique ones.')
 
         # Cleaning
-        adjmat = utils.remove_quotes(df)
-        df = self.adjmat2vec(adjmat)
+        df = utils.remove_quotes(df)
+        # Convert to source-target
+        if not np.all(np.isin(['source', 'target'], df.columns.values)):
+            df = self.adjmat2vec(df)
         self._clean(clean_config=reset_properties, logger=logger)
         # Store chart
         self.chart = set_chart_func('Heatmap', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, reset_properties=reset_properties, notebook=notebook, classlabel=classlabel, description=description, vmax=vmax, stroke=stroke, cmap=cmap, cluster_params=cluster_params, logger=logger)
+        self.config = self.chart.set_config(scaler=scaler, fontsize=fontsize, config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, reset_properties=reset_properties, notebook=notebook, color=color, description=description, stroke=stroke, cmap=cmap, cluster_params=cluster_params, save_button=save_button, logger=logger)
         # Set default label properties
         if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
             self.set_node_properties(df, cmap=self.config['cmap'])
         # Color on cluster labels
-        self.node_properties = self.chart.color_on_clusterlabel(adjmat, df, self.node_properties, self.config, logger)
+        self.chart.set_colors(df, node_properties=self.node_properties, config=self.config, logger=logger)
         # Set edge properties
-        html = self.chart.set_properties(df, self.config, self.node_properties, logger)
-        # Display the chart
-        return self.display(html)
+        self.edge_properties = self.chart.set_edge_properties(df, config=self.config, logger=logger)
+        # Create the plot
+        return self.show()
 
     def matrix(self,
-                df,
-                scale=False,
-                stroke='red',
-                description=None,
-                vmin=None,
-                vmax=None,
-                cmap='interpolateInferno',
-                fontsize=10,
-                title='Matrix - D3blocks',
-                figsize=[700, 500],
-                showfig=True,
-                filepath='matrix.html',
-                overwrite=True,
-                notebook=False,
-                reset_properties=True,
-                ):
+               df,
+               scale=False,
+               stroke='red',
+               description=None,
+               vmin=None,
+               vmax=None,
+               cmap='interpolateInferno',
+               fontsize=10,
+               title='Matrix - D3blocks',
+               figsize=[700, 500],
+               showfig=True,
+               filepath='matrix.html',
+               overwrite=True,
+               notebook=False,
+               save_button: bool = True,
+               reset_properties=True,
+               ):
         """Matrix block.
 
         Parameters
@@ -1582,6 +1716,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -1601,9 +1738,10 @@ class D3Blocks():
                       vmin=1,
                       fontsize=10,
                       title='D3blocks Matrix',
-                      filepath='d3blocks_matrix.html',
                       figsize=[600, 300],
-                      cmap='interpolateGreens')
+                      cmap='interpolateGreens',
+                      filepath='matrix.html',
+                      )
 
         References
         ----------
@@ -1626,7 +1764,7 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Matrix', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, reset_properties=reset_properties, notebook=notebook, description=description, vmax=vmax, vmin=vmin, stroke=stroke, cmap=cmap, scale=scale, fontsize=fontsize, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, reset_properties=reset_properties, notebook=notebook, description=description, vmax=vmax, vmin=vmin, stroke=stroke, cmap=cmap, scale=scale, fontsize=fontsize, save_button=save_button, logger=logger)
         # Set default label properties
         if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
             self.set_node_properties(df, cmap='Set2')
@@ -1638,17 +1776,22 @@ class D3Blocks():
     def d3graph(self,
                 df,
                 color='cluster',
-                size=10,
+                size='degree',
+                opacity='degree',
                 scaler='zscore',
                 title='D3graph - D3blocks',
                 filepath='d3graph.html',
                 figsize=[1500, 800],
                 collision=0.5,
                 charge=400,
+                cmap='Set1',
                 slider=[None, None],
+                set_slider=0,
+                show_slider=True,
                 notebook=False,
                 showfig=True,
                 support='text',
+                save_button: bool = True,
                 overwrite=True):
         """d3graph block.
 
@@ -1678,14 +1821,36 @@ class D3Blocks():
                 * ['A','A','B',...]:  Colors are generated using cmap and the unique labels accordingly colored.
         size : array of integers (default: 5)
             Size of the nodes.
+                * 'degree' opacity is based on the centrality measure.
                 * 10: all nodes sizes are set to 10
                 * [10, 5, 3, 1, ...]: Specify node sizes
+        opacity : list of floats (default: 'degree')
+            Set the opacity of the node [0-1] where 0=transparant and 1=no transparancy.
+                * None: Colors are inhereted from the initialization
+                * 'degree' opacity is based on the centrality measure.
+                * 0.99: All nodes will get this transparancy
+                * ['0.4, 0.1, 0.3,...]
+                * ['A','A','B',...]:  Opacity is generated using cmap and according to the unique labels.
+        scaler : str, (default: 'zscore')
+            Scale the edge-width using the following scaler:
+            'zscore' : Scale values to Z-scores.
+            'minmax' : The sklearn scaler will shrink the distribution between minmax.
+            None : No scaler is used.
         collision : float, (default: 0.5)
             Response of the network. Higher means that more collisions are prevented.
         charge : int, (default: 400)
             Edge length of the network. Towards zero becomes a dense network. Higher make edges longer.
+        cmap : String, (default: 'Set1')
+            All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
+                * 'tab20c', 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv', 'inferno'
         slider : typle [min: int, max: int]:, (default: [None, None])
             Slider is automatically set to the range of the edge weights.
+        set_slider : int, (default: 0)
+            0: Set the the slider with all edges connected
+            1,2,3, etc: Set slider at a threshold with that particular network state.
+        show_slider : bool, (default: True)
+            True: Slider is shown in the HTML.
+            False: Slider is not shown in the HTML.
         title : String, (default: None)
             Title of the figure.
                 * 'd3graph'
@@ -1704,6 +1869,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         overwrite : bool, (default: True)
                 * True: Overwrite the html in the destination directory.
                 * False: Do not overwrite destination file but show warning instead.
@@ -1770,6 +1938,8 @@ class D3Blocks():
         self.config['collision'] = collision
         self.config['charge'] = -abs(charge)
         self.config['slider'] = slider
+        self.config['show_slider'] = show_slider
+        self.config['set_slider'] = set_slider
         self.config['notebook'] = notebook
 
         # Copy of data
@@ -1781,27 +1951,28 @@ class D3Blocks():
         # Convert vector to adjmat
         adjmat = d3network.vec2adjmat(df['source'], df['target'], weight=df['weight'])
         # Create default graph
-        self.D3graph.graph(adjmat, color=color, size=size, scaler=scaler)
+        self.D3graph.graph(adjmat, color=color, size=size, opacity=opacity, scaler=scaler, cmap=cmap)
         # Open the webbrowser
-        self.D3graph.show(figsize=figsize, title=title, filepath=filepath, showfig=showfig, overwrite=overwrite)
+        self.D3graph.show(figsize=figsize, title=title, filepath=filepath, showfig=showfig, overwrite=overwrite, show_slider=show_slider, set_slider=set_slider)
         # Display the chart
         # return self.display(html)
 
     def elasticgraph(self,
-                  df,
-                  scaler='zscore',
-                  group='cluster',
-                  title='Elasticgraph - D3blocks',
-                  filepath='Elasticgraph.html',
-                  figsize=[None, None],
-                  collision=0.5,
-                  charge=250,
-                  size=4,
-                  hull_offset=15,
-                  single_click_expand=False,
-                  notebook=False,
-                  showfig=False,
-                  overwrite=True):
+                     df,
+                     scaler='zscore',
+                     group='cluster',
+                     title='Elasticgraph - D3blocks',
+                     filepath='Elasticgraph.html',
+                     figsize=[1500, 800],
+                     collision=0.5,
+                     charge=250,
+                     size=4,
+                     hull_offset=15,
+                     single_click_expand=False,
+                     notebook=False,
+                     showfig=True,
+                     save_button: bool = True,
+                     overwrite=True):
         """D3 Elasticgraph block.
 
         Elasticgraph is integrated in d3blocks to create interactive and stand-alone D3 force-directed graphs for which
@@ -1855,6 +2026,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         overwrite : bool, (default: True)
                 * True: Overwrite the html in the destination directory.
                 * False: Do not overwrite destination file but show warning instead.
@@ -1935,19 +2109,191 @@ class D3Blocks():
         # Display the chart
         # return self.display(html)
 
+    def tree(self,
+             df: pd.DataFrame,
+             hierarchy = [1, 2, 3, 4, 5, 6, 7, 8],
+             margin = {"top": 20, "right": 80, "bottom": 20, "left": 60},
+             font = {'size': 10},
+             title: str = 'Tree - D3blocks',
+             filepath: str = 'tree.html',
+             figsize = [960, 700],
+             showfig: bool = True,
+             overwrite: bool = True,
+             notebook: bool = False,
+             save_button: bool = True,
+             reset_properties: bool = True):
+        """Tree block.
+
+        A Tree chart is a visualization to hierarchically show the data.
+        For demonstration purposes, the "energy" dataset can be used.
+        The javascript code is forked from Mike Bostock, inspired by R-Shiny and then Pythonized.
+
+        Parameters
+        ----------
+        df : pd.DataFrame()
+            Input data containing the following columns:
+                * 'source', 'target', 'weight'
+        hierarchy : list
+            Expand or substract the hierarchical structure. No information is lossed. The eight branches are shown by default.
+            * [1, 2, 3, 4, 5, 6, 7, 8]
+        margin : dict.
+            margin, in pixels.
+                * {"top": 40, "right": 10, "bottom": 10, "left": 10}
+        font : dict.
+            font properties.
+                * {'size': 10}
+        title : String, (default: None)
+            Title of the figure.
+                * 'Treemap'
+        filepath : String, (Default: user temp directory)
+                * File path to save the output.
+                * Temporarily path: 'd3blocks.html'
+                * Relative path: './d3blocks.html'
+                * Absolute path: 'c://temp//d3blocks.html'
+                * None: Return HTML
+        figsize : tuple
+            Size of the figure in the browser, [width, height].
+                * [1000, 600]
+                * [None, None]: Use the screen resolution.
+        showfig : bool, (default: True)
+                * True: Open browser-window.
+                * False: Do not open browser-window.
+        overwrite : bool, (default: True)
+                * True: Overwrite the html in the destination directory.
+                * False: Do not overwrite destination file but show warning instead.
+        notebook : bool
+                * True: Use IPython to show chart in notebook.
+                * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
+        reset_properties : bool, (default: True)
+                * True: Reset the node_properties at each run.
+                * False: Use the d3.node_properties()
+
+        Returns
+        -------
+        d3.node_properties: DataFrame of dictionary
+             Contains properties of the unique input label/nodes/samples.
+
+        d3.edge_properties: DataFrame of dictionary
+             Contains properties of the unique input edges/links.
+
+        d3.config: dictionary
+             Contains configuration properties.
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks()
+        >>> #
+        >>> # Load example data
+        >>> df = d3.import_example('energy')
+        >>> #
+        >>> # Plot
+        >>> d3.tree(df)
+        >>> #
+
+        Examples
+        --------
+        >>> # Load library
+        >>> from d3blocks import D3Blocks
+        >>>
+        >>> # Initialize
+        >>> d3 = D3Blocks(verbose='info', chart='tree', frame=False)
+        >>>
+        >>> # Import example
+        >>> df = d3.import_example('energy')
+        >>>
+        >>> # Set node properties
+        >>> d3.set_node_properties(df)
+        >>>
+        >>> # Set specific properties
+        >>> d3.node_properties.get('Bio-conversion')['size'] = 30
+        >>> d3.node_properties.get('Bio-conversion')['color'] = '#000000'
+        >>> d3.node_properties.get('Bio-conversion')['tooltip'] = 'Title: P Operations<br><img src="https://source.unsplash.com/collection/385548/150x100">'
+        >>> d3.node_properties.get('Bio-conversion')['edge_color'] = '#00FFFF'
+        >>> d3.node_properties.get('Bio-conversion')['edge_size'] = 5
+        >>> d3.node_properties.get('Bio-conversion')['opacity'] = 0.4
+        >>>
+        >>> # Set properties for Losses
+        >>> d3.node_properties.get('Losses')['color'] = '#FF0000'
+        >>> d3.node_properties.get('Losses')['size'] = 15
+        >>> d3.node_properties.get('Losses')['tooltip'] = ''
+        >>>
+        >>> # Set properties for Agriculture
+        >>> d3.node_properties.get('Agriculture')['color'] = '#00FFFF'
+        >>> d3.node_properties.get('Agriculture')['size'] = 5
+        >>> d3.node_properties.get('Agriculture')['edge_color'] = '#89CFF0'
+        >>> d3.node_properties.get('Agriculture')['edge_size'] = 3
+        >>> d3.node_properties.get('Agriculture')['opacity'] = 0.7
+        >>>
+        >>> # Set edge properties
+        >>> d3.set_edge_properties(df)
+        >>>
+        >>> # Show chart
+        >>> d3.show(hierarchy=[1, 2, 3, 4, 5, 6, 7, 8], filepath=r'c:\temp\tree.html')
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks(chart='tree', frame=True)
+        >>> #
+        >>> # Import example
+        >>> df = d3.import_example('energy')
+        >>> #
+        >>> # Node properties
+        >>> d3.set_node_properties(df)
+        >>> print(d3.node_properties)
+        >>> #
+        >>> d3.set_edge_properties(df)
+        >>> print(d3.edge_properties)
+        >>> #
+        >>> # Show the chart
+        >>> d3.show()
+
+        References
+        ----------
+        * https://d3js.org/d3-hierarchy/tree
+        * https://d3blocks.github.io/d3blocks/pages/html/Tree.html
+
+        """
+        # Create unique dataframe, udpate weights
+        df = utils.create_unique_dataframe(df, logger=logger)
+        # Cleaning
+        self._clean(clean_config=reset_properties, logger=logger)
+        # Store chart
+        self.chart = set_chart_func('Tree', logger)
+        # Store properties
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, font=font, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, margin=margin, reset_properties=reset_properties, notebook=notebook, hierarchy=hierarchy, save_button=save_button, logger=logger)
+        # Cleaning of data
+        df = utils.pre_processing(df, labels=df.columns.values[:-1].astype(str), logger=logger)
+        # Set default label properties
+        if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
+            self.set_node_properties(df, cmap=self.config['cmap'], labels=df.columns.values[:-1].astype(str))
+        # Set edge properties
+        self.set_edge_properties(df)
+        # Create the plot
+        return self.show()
+
     def treemap(self,
-               df,
-               margin: dict = {"top": 40, "right": 10, "bottom": 10, "left": 10},
-               border: dict = {'type': 'solid', 'color': '#FFFFFF', 'width': 1},
-               font: dict = {'size': 10, 'type':'sans-serif', 'position': 'absolute'},
-               title: str = 'Treemap - D3blocks',
-               filepath: str = 'treemap.html',
-               figsize: Tuple[int, int] = [1000, 600],
-               showfig: bool = True,
-               overwrite: bool = True,
-               notebook: bool = False,
-               reset_properties: bool = True,
-               ):
+                df: pd.DataFrame,
+                margin = {"top": 40, "right": 10, "bottom": 10, "left": 10},
+                border = {'type': 'solid', 'color': '#FFFFFF', 'width': 1},
+                font = {'size': 10, 'type': 'sans-serif', 'position': 'absolute'},
+                title: str = 'Treemap - D3blocks',
+                filepath: str = 'treemap.html',
+                figsize = [1000, 600],
+                showfig: bool = True,
+                overwrite: bool = True,
+                notebook: bool = False,
+                reset_properties: bool = True):
         """Treemap block.
 
         A Treemap chart is a visualization to hierarchically show the data as a set of nested rectangles.
@@ -1991,6 +2337,9 @@ class D3Blocks():
         notebook : bool
                 * True: Use IPython to show chart in notebook.
                 * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
         reset_properties : bool, (default: True)
                 * True: Reset the node_properties at each run.
                 * False: Use the d3.node_properties()
@@ -2054,12 +2403,347 @@ class D3Blocks():
         # Store chart
         self.chart = set_chart_func('Treemap', logger)
         # Store properties
-        self.config = self.chart.set_config(config=self.config, filepath=filepath, border=border, font=font, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, margin=margin, reset_properties=reset_properties, notebook=notebook, logger=logger)
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, border=border, font=font, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, margin=margin, reset_properties=reset_properties, notebook=notebook, save_button=False, logger=logger)
+        # Cleaning of data
+        df = utils.pre_processing(df, labels=df.columns.values[:-1].astype(str), logger=logger)
         # Set default label properties
         if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
             self.set_node_properties(df, cmap=self.config['cmap'], labels=df.columns.values[:-1].astype(str))
         # Set edge properties
         self.set_edge_properties(df)
+        # Create the plot
+        return self.show()
+
+    def circlepacking(self,
+                      df,
+                      size: str ='sum',
+                      zoom: str = 'click',
+                      speed: int = 750,
+                      border = {'color': '#FFFFFF', 'width': 1.5, 'fill': '#FFFFFF', "padding": 5},
+                      font: dict = {'size': 20, 'color': '#000000', 'type': 'Source Serif Pro', 'outlinecolor': '#FFFFFF'},
+                      title: str = 'Circlepacking - D3blocks',
+                      filepath: str = 'Circlepacking.html',
+                      figsize = [900, 1920],
+                      showfig: bool = True,
+                      overwrite: bool = True,
+                      notebook: bool = False,
+                      save_button: bool = True,
+                      reset_properties: bool = True,
+                      ):
+        """Circlepacking block.
+
+        The Circlepacking chart is a visualization to hierarchically show the data as a set of nested circles.
+        For demonstration purposes, the "energy" and "stormofswords" dataset can be used.
+        The javascript code is forked from Mike Bostock and then Pythonized.
+
+        Parameters
+        ----------
+        df : pd.DataFrame()
+            Input data containing the following columns:
+                * 'source', 'target', 'weight'
+                * 'level0', 'level1', 'level2', 'weight'
+        size : str (default: "sum")
+            Size of the nodes can automatically be set in with:
+                * 'sum' : This is the sum of the weights for the edges
+                * 'constant' : All nodes are set to 1
+        speed : int (default: 750)
+            Speed in ms to zoom in/out
+        zoom : str (default: "click")
+            Zooming method.
+                * 'click'
+                * 'mouseover'
+        border : dict.
+            border properties.
+                * {'color': '#FFFFFF', 'width': 1.5, 'fill': '#FFFFFF', "padding": 2}
+                * border color: color for the circles
+                * width: width for the circles
+                * fill: fill color for the circles
+                * padding: size of the circles
+        font : dict.
+            font properties.
+                * {'size': 20, 'type':'sans-serif'}
+        title : String, (default: None)
+            Title of the figure.
+                * 'Circlepacking'
+        filepath : String, (Default: user temp directory)
+                * File path to save the output.
+                * Temporarily path: 'd3blocks.html'
+                * Relative path: './d3blocks.html'
+                * Absolute path: 'c://temp//d3blocks.html'
+                * None: Return HTML
+        figsize : tuple
+            Size of the figure in the browser, [width, height].
+                * [1000, 1200]
+                * [None, None]: Use the screen resolution.
+        showfig : bool, (default: True)
+                * True: Open browser-window.
+                * False: Do not open browser-window.
+        overwrite : bool, (default: True)
+                * True: Overwrite the html in the destination directory.
+                * False: Do not overwrite destination file but show warning instead.
+        notebook : bool
+                * True: Use IPython to show chart in notebook.
+                * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
+        reset_properties : bool, (default: True)
+                * True: Reset the node_properties at each run.
+                * False: Use the d3.node_properties()
+
+        Returns
+        -------
+        d3.node_properties: DataFrame of dictionary
+             Contains properties of the unique input label/nodes/samples.
+
+        d3.edge_properties: DataFrame of dictionary
+             Contains properties of the unique input edges/links.
+
+        d3.config: dictionary
+             Contains configuration properties.
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks()
+        >>> #
+        >>> # Load example data
+        >>> df = d3.import_example('energy')
+        >>> df = d3.import_example('animals')
+        >>> #
+        >>> # Plot
+        >>> d3.circlepacking(df)
+        >>> #
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks(chart='Circlepacking', frame=True)
+        >>> #
+        >>> # Import example
+        >>> df = d3.import_example('energy')
+        >>> #
+        >>> # Node properties
+        >>> d3.set_node_properties(df)
+        >>> print(d3.node_properties)
+        >>> #
+        >>> d3.set_edge_properties(df)
+        >>> print(d3.edge_properties)
+        >>> #
+        >>> # Show the chart
+        >>> d3.show()
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks()
+        >>> #
+        >>> # Import example
+        >>> df = d3.import_example('energy')
+        >>> #
+        >>> html = d3.circlepacking(df,
+        >>>                         speed=1500,
+        >>>                         zoom='mouseover',
+        >>>                         filepath='c://temp//circlepacking.html',
+        >>>                         border={'color': '#FFFFFF', 'width': 1.5, 'fill': '#FFFFFF', "padding": 2},
+        >>>                         overwrite=True,
+        >>>                         )
+        >>> #
+        >>> # Show the chart
+        >>> d3.show()
+        """
+        # Cleaning
+        self._clean(clean_config=reset_properties, logger=logger)
+        # Store chart
+        self.chart = set_chart_func('Circlepacking', logger)
+        # Store properties
+        self.config = self.chart.set_config(config=self.config, filepath=filepath, size=size, zoom=zoom, speed=speed, border=border, font=font, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, reset_properties=reset_properties, notebook=notebook, save_button=save_button, logger=logger)
+        # Cleaning of data
+        df = utils.pre_processing(df, labels=df.columns.values[:-1].astype(str), logger=logger)
+        # Set default label properties
+        if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
+            self.set_node_properties(df, cmap=self.config['cmap'], labels=df.columns.values[:-1].astype(str), size=self.config['size'])
+        # Set edge properties
+        self.set_edge_properties(df)
+        # Create the plot
+        return self.show()
+
+    def maps(self,
+             df,
+             size=10,
+             color='#0981D1',
+             opacity=0.8,
+             label='',
+             countries = {'World': {'color':'#D3D3D3', 'opacity': 0.6, 'line': 'none', 'linewidth': 1},
+                          'Australia': {'color': '#008000', 'opacity': 0.3, 'line': 'dashed', 'linewidth': 5}},
+             cmap='Set2',
+             title: str = 'Maps - D3blocks',
+             filepath: str = 'maps.html',
+             figsize = None,
+             showfig: bool = True,
+             overwrite: bool = True,
+             notebook: bool = False,
+             save_button: bool = True,
+             reset_properties: bool = True,
+             ):
+        """Maps block.
+
+        The Maps chart is a visualization to plot the World and color and mark countries together with circles for highlighs.
+        For demonstration purposes, the "surfspots" can be used.
+        The javascript code is forked from Mike Bostock and then Pythonized.
+
+        Parameters
+        ----------
+        df : pd.DataFrame()
+            Input data containing the following columns:
+                * 'lon', 'lat', 'label', 'size', 'opacity'
+        size : str (default: 10)
+            Size of the nodes:
+                * 10 : Same size for all scatter points
+                * [10, 4, 30, ..]
+        color : str (default: '#0981D1')
+            Hex color of the scatter points:
+                * '#0981D1': Same color for all scatter points
+                * ['Netherlands', 'Australia', 'Austrialia', ..]
+                * ['#000FFF', '#000000', '#000000', ..]
+        opacity : str (default: 0.8)
+            Opacity of the scatter points:
+                * 0.8 : Same opacity for all scatter points
+                * [0.8, 0.6, ..]
+        label : str (default: '')
+            Label of the scatter points:
+                * '' : Same label for all scatter points
+                * ['Amsterdam', 'New York', ..]
+        countries : dict.
+            border properties of the countries. The world are the properties of the entire map. Each country can be changed accordingly.
+                * {'World': {'color':'#D3D3D3', 'opacity': 0.3, 'line': 'none', 'linewidth': 1}},
+                * color: color for the country
+                * opacity: opacity of the country
+                * line: ['dashed', 'none'], line of the country
+                * linewidth: width of the line
+        title : String, (default: None)
+            Title of the figure.
+                * 'Circlepacking'
+        filepath : String, (Default: user temp directory)
+                * File path to save the output.
+                * Temporarily path: 'd3blocks.html'
+                * Relative path: './d3blocks.html'
+                * Absolute path: 'c://temp//d3blocks.html'
+                * None: Return HTML
+        figsize : tuple
+            Size of the figure in the browser, [width, height].
+                * [1000, 1200]
+                * None or [None, None]: Use the screen resolution.
+        showfig : bool, (default: True)
+                * True: Open browser-window.
+                * False: Do not open browser-window.
+        overwrite : bool, (default: True)
+                * True: Overwrite the html in the destination directory.
+                * False: Do not overwrite destination file but show warning instead.
+        notebook : bool
+                * True: Use IPython to show chart in notebook.
+                * False: Do not use IPython.
+        save_button : bool, (default: True)
+                * True: Save button is shown in the HTML to save the image in svg.
+                * False: No save button is shown in the HTML.
+        reset_properties : bool, (default: True)
+                * True: Reset the node_properties at each run.
+                * False: Use the d3.node_properties()
+
+        Returns
+        -------
+        d3.node_properties: DataFrame of dictionary
+             Contains properties of the unique input label/nodes/samples.
+
+        d3.edge_properties: DataFrame of dictionary
+             Contains properties of the unique input edges/links.
+
+        d3.config: dictionary
+             Contains configuration properties.
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks()
+        >>> #
+        >>> # Load example data
+        >>> df = d3.import_example('surfspots')
+        >>> #
+        >>> # Plot
+        >>> d3.maps(df)
+        >>> #
+
+        Examples
+        --------
+        >>> # Load d3blocks
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks()
+        >>> #
+        >>> # Load example data
+        >>> df = d3.import_example('surfspots')
+        >>> #
+        >>> # Plot
+        >>> d3.maps(df, color=df['label'].values, cmap='Set2')
+        >>> #
+        >>> html = d3.maps(df, color=df['label'].values, countries = {'World': {'color':'#D3D3D3', 'opacity': 0.4, 'line': 'none', 'linewidth': 0.1},
+        >>>                                                                 'Netherlands': {'color': '#000FFF', 'opacity': 0.5, 'line': 'none', 'linewidth': 1},
+        >>>                                                                 'France': {'color': '#FFA500', 'opacity': 1, 'line': 'dashed', 'linewidth': 2},
+        >>>                                                                 'Australia': {'color': '#008000', 'opacity': 0.3, 'line': 'dashed', 'linewidth': 5},
+        >>>                                                                 })
+
+        Examples
+        --------
+        >>> # Load library
+        >>> from d3blocks import D3Blocks
+        >>> #
+        >>> # Initialize
+        >>> d3 = D3Blocks(chart='maps', frame=False)
+        >>> #
+        >>> # Import example
+        >>> df = d3.import_example('surfspots', overwrite=True)
+        >>> #
+        >>> # Set node properties
+        >>> d3.set_node_properties(df)
+        >>> d3.node_properties
+        >>> #
+        >>> # Set edge properties
+        >>> d3.set_edge_properties({'Australia': {'color': '#008000', 'opacity': 0.3, 'line': 'dashed', 'linewidth': 5},
+        >>>                         'Netherlands': {'color': '#000FFF', 'line': 'dashed'},
+        >>>                         })
+        >>> d3.edge_properties
+        >>> #
+        >>> # Show chart
+        >>> d3.show()
+        >>> #
+
+        """
+        # Cleaning
+        self._clean(clean_config=reset_properties, logger=logger)
+        # Store chart
+        self.chart = set_chart_func('Maps', logger)
+        # Store properties
+        self.config = self.chart.set_config(config=self.config, cmap=cmap, filepath=filepath, title=title, showfig=showfig, overwrite=overwrite, figsize=figsize, reset_properties=reset_properties, notebook=notebook, save_button=save_button, logger=logger)
+        # Cleaning of data
+        # df = utils.pre_processing(df, logger=logger)
+        # Set default label properties
+        if self.config['reset_properties'] or (not hasattr(self, 'node_properties')):
+            self.set_node_properties(df, cmap=self.config['cmap'], size=size, color=color, opacity=opacity, label=label)
+        # Set edge properties
+        self.set_edge_properties(countries)
         # Create the plot
         return self.show()
 
@@ -2095,7 +2779,7 @@ class D3Blocks():
         cmap : String, (default: 'tab20')
             colormap is only used in case color=None.
             All colors can be reversed with '_r', e.g. 'binary' to 'binary_r'
-                * 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
+                * 'tab20c', 'Set1', 'Set2', 'rainbow', 'bwr', 'binary', 'seismic', 'Blues', 'Reds', 'Pastel1', 'Paired', 'twilight', 'hsv'
 
         Returns
         -------
@@ -2113,10 +2797,11 @@ class D3Blocks():
 
         # Compute edge properties for the specified chart.
         if self.chart is not None:
-            df = self.chart.set_edge_properties(*args, config=self.config, node_properties=self.node_properties, **kwargs)
+            edge_properties = self.chart.set_edge_properties(*args, config=self.config, node_properties=self.node_properties, **kwargs)
 
         # Convert to frame/dictionary
-        self.edge_properties = utils.convert_dataframe_dict(df, frame=self.config['frame'], chart=self.config['chart'], logger=logger)
+        # self.edge_properties = utils.convert_dataframe_dict(edge_properties, frame=self.config['frame'], chart=self.config['chart'], logger=logger)
+        self.edge_properties = edge_properties
 
         # Store and return
         logger.info('Edge properties are set.')
@@ -2280,7 +2965,8 @@ class D3Blocks():
         >>> adjmat = d3.vec2adjmat(df['source'], df['target'], df['weight'])
 
         """
-        return d3network.vec2adjmat(source, target, weight=weight, symmetric=symmetric, aggfunc=aggfunc)
+        # return d3network.vec2adjmat(source, target, weight=weight, symmetric=symmetric, aggfunc=aggfunc)
+        return utils.vec2adjmat(source, target, weight=weight, symmetric=symmetric, aggfunc=aggfunc)
 
     @staticmethod
     def adjmat2vec(df, min_weight=1):
@@ -2315,10 +3001,10 @@ class D3Blocks():
         """
         return d3network.adjmat2vec(df, min_weight=min_weight)
 
-    def import_example(self, data, n=10000, c=300, date_start="17-12-1903 00:00:00", date_stop="17-12-1903 23:59:59"):
+    def import_example(self, data, n=10000, c=300, date_start="17-12-1903 00:00:00", date_stop="17-12-1903 23:59:59", overwrite=False):
         """Import example dataset from github source.
 
-        Import one of the few datasets from github source or specify your own download url link.
+        Import one of the few datasets from github sourcek.
 
         Parameters
         ----------
@@ -2327,18 +3013,19 @@ class D3Blocks():
                 * "movingbubbles"
                 * "random_time"
                 * "timeseries"
+                * "bigbang"
+                * "southern_nebula_internet"
+                * "climate"
+                * "mnist"
+                * "animals"
+            Datazets:
                 * "energy"
                 * "stormofswords"
-                * "bigbang"
                 * "southern_nebula"
-                * "southern_nebula_internet"
                 * "cancer"
                 * "breast_cancer"
                 * "iris"
                 * "occupancy"
-                * "climate"
-                * "mnist"
-                * "animals"
         n : int, (default: 1000).
             Number of events (samples).
         c : int, (default: 100).
@@ -2356,35 +3043,39 @@ class D3Blocks():
             Dataset containing mixed features.
 
         """
-        return _import_example(data=data, n=n, c=c, date_start=date_start, date_stop=date_stop, dt_format='%d-%m-%Y %H:%M:%S', logger=logger)
+        if np.isin(data, ['animals', 'mnist', 'movingbubbles', 'random_time', 'timeseries', 'southern_nebula_internet', 'climate']):
+            return _import_example(data=data, n=n, c=c, date_start=date_start, date_stop=date_stop, dt_format='%d-%m-%Y %H:%M:%S', logger=logger)
+        else:
+            return dz.get(data=data, verbose=get_logger(), overwrite=overwrite)
 
 
 # %% Import example dataset from github.
 def _import_example(data, n=10000, c=1000, date_start=None, date_stop=None, dt_format='%d-%m-%Y %H:%M:%S', logger=None):
     """Import example dataset from github source.
 
-    Import one of the few datasets from github source or specify your own download url link.
+    Import one of the few datasets from github source.
 
     Parameters
     ----------
     data : str
-        Name of datasets
-            * movingbubbles
-            * random_time
-            * timeseries
-            * energy
-            * stormofswords
-            * bigbang
-            * southern_nebul
-            * southern_nebula_internet
-            * unsplash
-            * cancer
-            * breast_cancer
-            * iris
-            * occupancy
-            * climate
+        Example datasets:
+            * "movingbubbles"
+            * "random_time"
+            * "timeseries"
+            * "bigbang"
+            * "southern_nebula_internet"
+            * "climate"
             * "mnist"
             * "animals"
+        Datazets:
+            * "bigbang"
+            * "energy"
+            * "stormofswords"
+            * "southern_nebula"
+            * "cancer"
+            * "breast_cancer"
+            * "iris"
+            * "occupancy"
     n : int, (default: 1000).
         Number of events (samples).
     c : int, (default: 100).
@@ -2404,6 +3095,7 @@ def _import_example(data, n=10000, c=1000, date_start=None, date_stop=None, dt_f
     """
     ext = '.csv'
     sep=','
+    url=None
 
     if data=='movingbubbles':
         url='https://erdogant.github.io/datasets/movingbubbles.zip'
@@ -2413,26 +3105,26 @@ def _import_example(data, n=10000, c=1000, date_start=None, date_stop=None, dt_f
         df = pd.DataFrame(np.random.randint(0, n, size=(n, 6)), columns=list('ABCDEF'))
         df['datetime'] = list(map(lambda x: random_date(date_start, date_stop, random.random(), dt_format=dt_format), range(0, n)), dt_format=dt_format)
         return df
-    elif data=='energy':
+    # elif data=='energy':
         # Sankey demo
-        url='https://erdogant.github.io/datasets/energy_source_target_value.zip'
-    elif data=='stormofswords':
+        # url='https://erdogant.github.io/datasets/energy_source_target_value.zip'
+    # elif data=='stormofswords':
         # Sankey demo
-        url='https://erdogant.github.io/datasets/stormofswords.zip'
+        # url='https://erdogant.github.io/datasets/stormofswords.zip'
     elif data=='bigbang':
         # Initialize
         d3model = d3network.d3graph()
         df = d3model.import_example('bigbang')[0]
         return d3network.adjmat2vec(df)
-    elif data=='southern_nebula':
-        # Image slider demo
-        url='https://erdogant.github.io/datasets/southern_nebula.zip'
-        ext='.jpg'
-    elif data=='southern_nebula':
-        # Image slider demo
-        before = 'https://erdogant.github.io/datasets/images/unsplash_before.jpg'
-        after = 'https://erdogant.github.io/datasets/images/unsplash_after.jpg'
-        return before, after
+    # elif data=='southern_nebula':
+    #     # Image slider demo
+    #     url='https://erdogant.github.io/datasets/southern_nebula.zip'
+    #     ext='.jpg'
+    # elif data=='southern_nebula':
+    #     # Image slider demo
+    #     before = 'https://erdogant.github.io/datasets/images/unsplash_before.jpg'
+    #     after = 'https://erdogant.github.io/datasets/images/unsplash_after.jpg'
+    #     return before, after
     elif data=='southern_nebula_internet':
         # Image slider demo
         before = 'https://erdogant.github.io/datasets/images/southern_nebula_before.jpg'
@@ -2443,17 +3135,17 @@ def _import_example(data, n=10000, c=1000, date_start=None, date_stop=None, dt_f
         before = 'https://erdogant.github.io/datasets/images/unsplash_before.jpg'
         after = 'https://erdogant.github.io/datasets/images/unsplash_after.jpg'
         return before, after
-    elif data=='cancer':
-        url='https://erdogant.github.io/datasets/cancer_dataset.zip'
-    elif data=='iris':
-        url='https://erdogant.github.io/datasets/iris_dataset.zip'
-        sep=';'
-    elif data=='breast_cancer':
-        url='https://erdogant.github.io/datasets/breast_cancer_dataset.zip'
-        sep=';'
-    elif data=='occupancy':
-        url='https://erdogant.github.io/datasets/UCI_Occupancy_Detection.zip'
-        sep=','
+    # elif data=='cancer':
+        # url='https://erdogant.github.io/datasets/cancer_dataset.zip'
+    # elif data=='iris':
+        # url='https://erdogant.github.io/datasets/iris_dataset.zip'
+        # sep=';'
+    # elif data=='breast_cancer':
+        # url='https://erdogant.github.io/datasets/breast_cancer_dataset.zip'
+        # sep=';'
+    # elif data=='occupancy':
+        # url='https://erdogant.github.io/datasets/UCI_Occupancy_Detection.zip'
+        # sep=','
     elif data=='climate':
         url='https://erdogant.github.io/datasets/kaggle_daily_delhi_climate_test.zip'
     elif data=='mnist':
@@ -2463,7 +3155,7 @@ def _import_example(data, n=10000, c=1000, date_start=None, date_stop=None, dt_f
         # example data with three levels and a single value field
         data = {'group1': ['Animal', 'Animal', 'Animal', 'Plant', 'Animal'],
                 'group2': ['Mammal', 'Mammal', 'Fish', 'Tree', 'Fish'],
-                'group3': ['Fox',    'Lion',   'Cod',  'Oak',  'Ape'],
+                'group3': ['Fox', 'Lion', 'Cod', 'Oak', 'Ape'],
                 'weight': [35000, 25000, 10000, 1500, 1750]}
         df = pd.DataFrame.from_dict(data)
         return df
@@ -2502,13 +3194,13 @@ def _import_example(data, n=10000, c=1000, date_start=None, date_stop=None, dt_f
         df = pd.read_csv(csvfile)
         # df.rename(columns={'weight':'value'}, inplace=True)
     elif data=='southern_nebula':
-        img_before = os.path.join(os.path.split(csvfile)[0], 'southern_nebula_before.jpg')
-        img_after = os.path.join(os.path.split(csvfile)[0], 'southern_nebula_after.jpg')
+        img_before = os.path.join(os.path.split(csvfile)[0], 'southern_nebula', 'southern_nebula_before.jpg')
+        img_after = os.path.join(os.path.split(csvfile)[0], 'southern_nebula', 'southern_nebula_after.jpg')
         return img_before, img_after
     elif data=='cancer':
         df = pd.read_csv(PATH_TO_DATA, sep=',')
-        df.rename(columns={'tsneX': 'x', 'tsneY': 'y', 'labx': 'labels'}, inplace=True)
-        df.set_index(df['labels'], inplace=True)
+        # df.rename(columns={'tsneX': 'x', 'tsneY': 'y', 'labx': 'labels'}, inplace=True)
+        # df.set_index(df['labels'], inplace=True)
     else:
         df = pd.read_csv(PATH_TO_DATA, sep=sep)
 
@@ -2594,6 +3286,12 @@ def unzip(path_to_zip, ext=''):
 
 
 # %%
+def get_logger():
+    """Get logger status."""
+    return logger.getEffectiveLevel()
+
+
+# %%
 def set_logger(verbose: [str, int] = 'info'):
     """Set the logger for verbosity messages.
 
@@ -2640,10 +3338,11 @@ def set_logger(verbose: [str, int] = 'info'):
     # Show examples
     logger.setLevel(verbose)
 
+
 # %%
 def disable_tqdm():
     """Set the logger for verbosity messages."""
-    return (True if (logger.getEffectiveLevel()>=30) else False)
+    return (True if (get_logger()>=30) else False)
 
 
 # %% Do checks
@@ -2659,10 +3358,11 @@ def set_chart_func(chart=None, logger=None):
     if chart is not None:
         if logger is not None: logger.info('Initializing [%s]' %(chart))
         chart = str.capitalize(chart)
-        if np.isin(chart, ['Chord', 'Sankey', 'Timeseries', 'Violin', 'Movingbubbles', 'Scatter', 'Heatmap', 'Matrix', 'Treemap']):
+        if np.isin(chart, ['Maps', 'Chord', 'Sankey', 'Timeseries', 'Violin', 'Movingbubbles', 'Scatter', 'Heatmap', 'Matrix', 'Treemap', 'Tree', 'Circlepacking']):
             chart=eval(chart)
         else:
             if logger is not None: logger.info('%s is not yet implemented in such manner.' %(chart))
             chart = None
 
     return chart
+

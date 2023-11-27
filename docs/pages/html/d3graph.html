@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>D3graph &mdash; d3blocks d3blocks documentation</title>
@@ -12,9 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6837f5c9"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -34,7 +36,7 @@
             d3blocks
           </a>
               <div class="version">
-                1.2.12
+                1.4.7
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -76,18 +78,23 @@
 <li class="toctree-l1"><a class="reference internal" href="elasticgraph.html">Elasticgraph</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Sankey.html">Sankey</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Heatmap.html">Heatmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Matrix.html">Matrix</a></li>
 <li class="toctree-l1"><a class="reference internal" href="MovingBubbles.html">MovingBubbles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Imageslider.html">Imageslider</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Scatter.html">Scatter</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Violin.html">Violin</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Particles.html">Particles</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Treemap.html">Treemap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Tree.html">Tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Circlepacking.html">circlepacking</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Maps.html">Maps</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Helper functions</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html">vec2adjmat</a></li>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html#module-d3blocks.d3blocks.D3Blocks.adjmat2vec">adjmat2vec</a></li>
 <li class="toctree-l1"><a class="reference internal" href="helper_functions.html#module-d3blocks.d3blocks.D3Blocks.import_example">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="helper_functions.html#saving-charts">Saving Charts</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
 <ul>
@@ -126,7 +133,7 @@
            <div itemprop="articleBody">
              
   <section id="d3graph">
-<h1>D3graph<a class="headerlink" href="#d3graph" title="Permalink to this heading"></a></h1>
+<h1>D3graph<a class="headerlink" href="#d3graph" title="Link to this heading"></a></h1>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p><a class="reference external" href="https://towardsdatascience.com/creating-beautiful-stand-alone-interactive-d3-charts-with-python-804117cb95a7">Read the Medium blog for more details about creating beautiful stand-alone interactive D3 charts with Python.</a></p>
@@ -136,7 +143,7 @@
 <p>This page contains a summary of the possiblities what you can do with D3graph. More details can be found on the <a class="reference external" href="https://erdogant.github.io/d3graph">D3graph documentation pages</a>.</p>
 </div>
 <hr class="docutils" />
-<span class="target" id="module-d3blocks.d3blocks.D3Blocks.d3graph"></span><p>d3graph block.</p>
+<p id="module-d3blocks.d3blocks.D3Blocks.d3graph">d3graph block.</p>
 <p>d3graph is integrated in d3blocks and is to create interactive and stand-alone D3 force-directed graphs.
 The input data is a dataframe containing source, target, and weight. In underneath example, we load the energy
 dataset which contains 68 relationships that are stored in a DataFrame with the columns source, target, and weight.
@@ -178,6 +185,7 @@ interactive and stand alone. For demonstration purposes, the “energy” and �
 <dt class="field-odd">param size<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt>Size of the nodes.</dt><dd><ul class="simple">
+<li><p>‘degree’ opacity is based on the centrality measure.</p></li>
 <li><p>10: all nodes sizes are set to 10</p></li>
 <li><p>[10, 5, 3, 1, …]: Specify node sizes</p></li>
 </ul>
@@ -186,6 +194,30 @@ interactive and stand alone. For demonstration purposes, the “energy” and �
 </dd>
 <dt class="field-even">type size<span class="colon">:</span></dt>
 <dd class="field-even"><p>array of integers (default: 5)</p>
+</dd>
+<dt class="field-odd">param opacity<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>Set the opacity of the node [0-1] where 0=transparant and 1=no transparancy.</dt><dd><ul class="simple">
+<li><p>None: Colors are inhereted from the initialization</p></li>
+<li><p>‘degree’ opacity is based on the centrality measure.</p></li>
+<li><p>0.99: All nodes will get this transparancy</p></li>
+<li><p>[‘0.4, 0.1, 0.3,…]</p></li>
+<li><p>[‘A’,’A’,’B’,…]:  Opacity is generated using cmap and according to the unique labels.</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">type opacity<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of floats (default: ‘degree’)</p>
+</dd>
+<dt class="field-odd">param scaler<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Scale the edge-width using the following scaler:
+‘zscore’ : Scale values to Z-scores.
+‘minmax’ : The sklearn scaler will shrink the distribution between minmax.
+None : No scaler is used.</p>
+</dd>
+<dt class="field-even">type scaler<span class="colon">:</span></dt>
+<dd class="field-even"><p>str, (default: ‘zscore’)</p>
 </dd>
 <dt class="field-odd">param collision<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Response of the network. Higher means that more collisions are prevented.</p>
@@ -199,11 +231,36 @@ interactive and stand alone. For demonstration purposes, the “energy” and �
 <dt class="field-even">type charge<span class="colon">:</span></dt>
 <dd class="field-even"><p>int, (default: 400)</p>
 </dd>
+<dt class="field-odd">param cmap<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>All colors can be reversed with ‘_r’, e.g. ‘binary’ to ‘binary_r’</dt><dd><ul class="simple">
+<li><p>‘tab20c’, ‘Set1’, ‘Set2’, ‘rainbow’, ‘bwr’, ‘binary’, ‘seismic’, ‘Blues’, ‘Reds’, ‘Pastel1’, ‘Paired’, ‘twilight’, ‘hsv’, ‘inferno’</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">type cmap<span class="colon">:</span></dt>
+<dd class="field-even"><p>String, (default: ‘Set1’)</p>
+</dd>
 <dt class="field-odd">param slider<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Slider is automatically set to the range of the edge weights.</p>
 </dd>
 <dt class="field-even">type slider<span class="colon">:</span></dt>
 <dd class="field-even"><p>typle [min: int, max: int]:, (default: [None, None])</p>
+</dd>
+<dt class="field-odd">param set_slider<span class="colon">:</span></dt>
+<dd class="field-odd"><p>0: Set the the slider with all edges connected
+1,2,3, etc: Set slider at a threshold with that particular network state.</p>
+</dd>
+<dt class="field-even">type set_slider<span class="colon">:</span></dt>
+<dd class="field-even"><p>int, (default: 0)</p>
+</dd>
+<dt class="field-odd">param show_slider<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True: Slider is shown in the HTML.
+False: Slider is not shown in the HTML.</p>
+</dd>
+<dt class="field-even">type show_slider<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool, (default: True)</p>
 </dd>
 <dt class="field-odd">param title<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
@@ -258,6 +315,15 @@ interactive and stand alone. For demonstration purposes, the “energy” and �
 </dd>
 <dt class="field-even">type notebook<span class="colon">:</span></dt>
 <dd class="field-even"><p>bool</p>
+</dd>
+<dt class="field-odd">param save_button<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p>True: Save button is shown in the HTML to save the image in svg.</p></li>
+<li><p>False: No save button is shown in the HTML.</p></li>
+</ul>
+</dd>
+<dt class="field-even">type save_button<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool, (default: True)</p>
 </dd>
 <dt class="field-odd">param overwrite<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -317,7 +383,7 @@ interactive and stand alone. For demonstration purposes, the “energy” and �
 <li><p>Documentation: <a class="reference external" href="https://erdogant.github.io/d3graph/">https://erdogant.github.io/d3graph/</a></p></li>
 </ul>
 <section id="input-data">
-<h2>Input Data<a class="headerlink" href="#input-data" title="Permalink to this heading"></a></h2>
+<h2>Input Data<a class="headerlink" href="#input-data" title="Link to this heading"></a></h2>
 <p>The input dataset is a DataFrame with three column, source, target and weight.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#                      source            target   weight</span>
 <span class="c1"># 0      Agricultural &#39;waste&#39;    Bio-conversion  124.729</span>
@@ -337,15 +403,15 @@ interactive and stand alone. For demonstration purposes, the “energy” and �
 </div>
 </section>
 <section id="charts">
-<h2>Charts<a class="headerlink" href="#charts" title="Permalink to this heading"></a></h2>
+<h2>Charts<a class="headerlink" href="#charts" title="Link to this heading"></a></h2>
 <section id="default">
-<h3>Default<a class="headerlink" href="#default" title="Permalink to this heading"></a></h3>
+<h3>Default<a class="headerlink" href="#default" title="Link to this heading"></a></h3>
 <iframe src="https://erdogant.github.io\docs\d3blocks\d3graph_example1.html" height="800px" width="775px", frameBorder="0"></iframe></section>
 <section id="change-node-properties">
-<h3>Change node properties<a class="headerlink" href="#change-node-properties" title="Permalink to this heading"></a></h3>
+<h3>Change node properties<a class="headerlink" href="#change-node-properties" title="Link to this heading"></a></h3>
 <iframe src="https://erdogant.github.io\docs\d3blocks\d3graph_example2.html" height="800px" width="775px", frameBorder="0"></iframe></section>
 <section id="change-edge-properties">
-<h3>Change Edge properties<a class="headerlink" href="#change-edge-properties" title="Permalink to this heading"></a></h3>
+<h3>Change Edge properties<a class="headerlink" href="#change-edge-properties" title="Link to this heading"></a></h3>
 <iframe src="https://erdogant.github.io\docs\d3blocks\d3graph_example3.html" height="775px" width="775px", frameBorder="0"></iframe><hr>
 <center>
         <script async src="https://media.ethicalads.io/media/client/ethicalads.min.js"></script>

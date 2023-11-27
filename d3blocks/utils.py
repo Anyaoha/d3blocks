@@ -17,17 +17,150 @@ import tempfile
 from pathlib import Path
 import time
 import json
-from typing import List, Union, Tuple
+import d3graph as d3network
+from collections import defaultdict
+
+
+def include_save_to_svg_script(save_button=False, title='d3graph_chart'):
+    javascript_code = ""
+    show_save_button = ['<!--', '-->']
+
+    if save_button:
+        javascript_code = """
+        // SAVE CHART TO SVG
+        document.getElementById('saveButton').addEventListener('click', function () {
+            var svgData = document.querySelector('svg').outerHTML;
+            var blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = '{{ title }}.svg';
+            link.click();
+        });
+        """
+        javascript_code = javascript_code.replace("{{ title }}", title)
+        show_save_button = ['', '']
+
+    # Replace the title
+    return javascript_code, show_save_button
+
+
+def convert_to_json_format(df, logger=None):
+    if logger is not None: logger.debug("Setting up json data file..")
+    json = []
+    for index, row in df.iterrows():
+        link = row.astype(str).to_dict()
+        json.append(link)
+    return json
+
+
+def is_circular(df, logger=None):
+    iloc = df['source'].str.lower()==df['target'].str.lower()
+    if np.any(iloc):
+        if logger is not None: logger.warning('Data contains self-link that is not allowed\n%s' %(df.loc[iloc, :]))
+        return False
+
+    graph = defaultdict(list)
+    for _, row in df.iterrows():
+        graph[row['source']].append(row['target'])
+
+    visited = set()
+    path = set()
+
+    def visit(vertex):
+        visited.add(vertex)
+        path.add(vertex)
+        for neighbour in graph[vertex]:
+            if neighbour not in visited:
+                if visit(neighbour):
+                    return True
+            elif neighbour in path:
+                return True
+        path.remove(vertex)
+        return False
+
+    return any(visit(v) for v in list(graph))  # Create a list of the dictionary keys
+
+
+def adjmat2vec(df, min_weight=1):
+    """Convert adjacency matrix into vector with source and target.
+
+    Parameters
+    ----------
+    adjmat : pd.DataFrame()
+        Adjacency matrix.
+
+    min_weight : float
+        edges are returned with a minimum weight.
+
+    Returns
+    -------
+    pd.DataFrame()
+        nodes that are connected based on source and target
+
+    Examples
+    --------
+    >>> # Initialize
+    >>> d3 = D3Blocks()
+    >>> #
+    >>> # Load example
+    >>> df = d3.import_example('energy')
+    >>> Convert into adjmat
+    >>> adjmat = d3.vec2adjmat(df['source'], df['target'], df['weight'])
+    >>> #
+    >>> # Convert back to vector
+    >>> vector = d3.adjmat2vec(adjmat)
+
+    """
+    return d3network.adjmat2vec(df, min_weight=min_weight)
+
+
+def vec2adjmat(source, target, weight=None, symmetric=True, aggfunc='sum'):
+    """Convert source and target into adjacency matrix.
+
+    Parameters
+    ----------
+    source : list
+        The source node.
+    target : list
+        The target node.
+    weight : list of int
+        The Weights between the source-target values
+    symmetric : bool, optional
+        Make the adjacency matrix symmetric with the same number of rows as columns. The default is True.
+    aggfunc : str, optional
+        Aggregate function in case multiple values exists for the same relationship.
+            * 'sum' (default)
+
+    Returns
+    -------
+    pd.DataFrame
+        adjacency matrix.
+
+    Examples
+    --------
+    >>> # Initialize
+    >>> d3 = D3Blocks()
+    >>> #
+    >>> # Load example
+    >>> df = d3.import_example('energy')
+    >>> #
+    >>> # Convert to adjmat
+    >>> adjmat = d3.vec2adjmat(df['source'], df['target'], df['weight'])
+
+    """
+    return d3network.vec2adjmat(source, target, weight=weight, symmetric=symmetric, aggfunc=aggfunc)
 
 
 # %% Normalize.
-def normalize(X, minscale: Union[int, float] = 0.5, maxscale: Union[int, float] = 4, scaler: str = 'zscore'):
+def normalize(X, minscale = 0.5, maxscale = 4, scaler: str = 'zscore'):
     # Instead of Min-Max scaling, that shrinks any distribution in the [0, 1] interval, scaling the variables to
     # Z-scores is better. Min-Max Scaling is too sensitive to outlier observations and generates unseen problems,
 
     # Set sizes to 0 if not available
     X[np.isinf(X)]=0
     X[np.isnan(X)]=0
+    if minscale is None: minscale=0.5
 
     # out-of-scale datapoints.
     if scaler == 'zscore' and len(np.unique(X)) > 3:
@@ -39,6 +172,7 @@ def normalize(X, minscale: Union[int, float] = 0.5, maxscale: Union[int, float] 
         except:
             raise Exception('sklearn needs to be pip installed first. Try: pip install scikit-learn')
         # scaling
+        if len(X.shape)<=1: X = X.reshape(-1, 1)
         X = MinMaxScaler(feature_range=(minscale, maxscale)).fit_transform(X).flatten()
     else:
         X = X.ravel()
@@ -80,6 +214,89 @@ def jitter_func(x, jitter=0.01):
     if jitter>0 and x is not None:
         x = x + np.random.normal(0, jitter, size=len(x))
     return x
+
+
+def vec2flare_v2(df, node_properties=None, chart=None, logger=None):
+    # Create the dataframe
+    # data = {
+    #     'source': ['Klaas', 'Klaas', 'Bill', 'Bill', 'Bill', 'Ana', 'Ana'],
+    #     'target': ['Bill', 'Ana', 'Claudette', 'Danny', 'Erika', 'Bill', 'Larry'],
+    #     'weight': [1, 1, 1, 1, 1, 1, 1]
+    # }
+    # df = pd.DataFrame(data)
+
+    # Function to recursively build the nested structure
+    def build_node(df, name, node_properties=None, visited=None):
+        if visited is None:
+            visited = set()
+        if name in visited:
+            return None  # or handle cycle appropriately
+        visited.add(name)
+
+        if node_properties.get(name, None) is None:
+            color="#D33F6A"
+            size=10
+            tooltip=name
+            node_opacity = 0.95
+            edge_size = 1
+            edge_color = '#000000'
+        else:
+            color=node_properties.get(name)['color']
+            size=node_properties.get(name)['size']
+            edge_size=node_properties.get(name)['edge_size']
+            edge_color=node_properties.get(name)['edge_color']
+            node_opacity=node_properties.get(name)['opacity']
+
+            # Correct for tooltip
+            if node_properties.get(name)['tooltip']==node_properties.get(name)['label']:
+                # Prevent showing the name twice
+                tooltip= node_properties.get(name)['tooltip']
+            elif node_properties.get(name)['tooltip']=='':
+                # In case empty, leave it empty
+                tooltip = node_properties.get(name)['tooltip']
+            else:
+                # Otherwise, append the name to the tooltip
+                tooltip=name + '<br>' + node_properties.get(name)['tooltip']
+
+        node = {}
+        node['name'] = name
+        node['node_color'] = color
+        node['node_size'] = size
+        node['tooltip'] = tooltip
+        node['edge_size'] = edge_size
+        node['edge_color'] = edge_color
+        node['node_opacity'] = node_opacity
+
+        # children = []
+        # sub_df = df[df['source'] == name]
+        # for _, row in sub_df.iterrows():
+        #     child = build_node(df, row['target'], node_properties)
+        #     children.append(child)
+
+        children = []
+        sub_df = df[df['source'] == name]
+        for _, row in sub_df.iterrows():
+            if row['target'] not in visited:
+                child = build_node(df, row['target'], node_properties, visited)
+                children.append(child)
+
+        if children:
+            node['children'] = children
+
+        return node
+
+    # Get the unique source names
+    uinames = df['source'].unique()
+
+    # Build the tree structure
+    tree = []
+    for uiname in uinames:
+        node = build_node(df, uiname, node_properties)
+        tree.append(node)
+
+    # Convert the tree structure to JSON
+    json_data = json.dumps(tree[0], indent=4)
+    return json_data
 
 
 # %% Convert to Flare format
@@ -173,8 +390,46 @@ def vec2flare(df, logger=None):
     return flare
 
 
+# %% Convert the flare into soure-target dataframe
+def convert_flare2source_target(filepath):
+    """Convert data set into source-target-weights.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to filename containing data.
+
+    Returns
+    -------
+    pd.DataFrame
+        Dataframe containing source,target,weights with the relationships.
+
+    """
+    def parse_node(node, parent=None):
+        results = []
+        name = node['name']
+        if 'value' in node:
+            results.append((parent, name, node['value']))
+        if 'children' in node:
+            for child in node['children']:
+                results.extend(parse_node(child, parent=name))
+        return results
+
+    with open(filepath) as f:
+        data = json.load(f)
+
+    parsed_data = parse_node(data)
+
+    # with open(filepath+'.csv', 'w') as f:
+    #     for line in parsed_data:
+    #         f.write(';'.join(str(x) for x in line) + '\n')
+
+    df = pd.DataFrame(parsed_data, columns=['source', 'target', 'weight'])
+    return df
+
+
 # %% Scaling
-def scale(X, vmax=100, make_round=True, logger=None):
+def scale(X, vmax=100, vmin=None, make_round=True, logger=None):
     """Scale data.
 
     Scaling in range by X*(100/max(X))
@@ -192,7 +447,7 @@ def scale(X, vmax=100, make_round=True, logger=None):
         Scaled image.
 
     """
-    if vmax is not None:
+    if (vmax is not None) and (X is not None):
         logger.info('Scaling image between [min-%s]' %(vmax))
         try:
             # Normalizing between 0-100
@@ -201,6 +456,8 @@ def scale(X, vmax=100, make_round=True, logger=None):
             X = X * vmax
             if make_round:
                 X = np.round(X)
+            if vmin is not None:
+                X = X + vmin
         except:
             logger.warning('Scaling not possible.')
 
@@ -304,11 +561,13 @@ def convert_dataframe_dict(X, frame, chart=None, logger=None):
     """
     if (chart is not None) and np.any(np.isin(chart.lower(), ['movingbubbles', 'timeseries'])):
         return X
-    elif (chart is not None) and (chart=='scatter'):
+    elif (chart is not None) and np.any(np.isin(chart.lower(), ['scatter'])):
         return pd.DataFrame(X).T
+    elif (chart is not None) and np.any(np.isin(chart.lower(), ['maps'])):
+        return pd.DataFrame(X)
 
     if isinstance(X, dict) and frame:
-        if logger is not None: logger.info('Convert to Frame.')
+        if logger is not None: logger.info('Convert to DataFrame.')
         X = pd.DataFrame.from_dict(X, orient='index').reset_index(drop=True)
     elif isinstance(X, pd.DataFrame) and not frame:
         if logger is not None: logger.info('Convert to Dictionary.')
@@ -385,8 +644,6 @@ def set_colors(X, c, cmap, c_gradient=None):
 def density_color(X, colors, labels):
     """Determine the density.
 
-    Description
-    -----------
     Given (x,y) coordinates, determine the density. This optional is possible in the following blocks:
         * scatter.
 
@@ -424,7 +681,7 @@ def density_color(X, colors, labels):
 
 
 # %% Pre processing
-def pre_processing(df, labels=['source', 'target']):
+def pre_processing(df, labels=['source', 'target'], clean_source_target=False, logger=None):
     """Pre-processing of the input dataframe.
 
     Parameters
@@ -438,8 +695,13 @@ def pre_processing(df, labels=['source', 'target']):
     """
     # Create strings from source-target
     if isinstance(df, pd.DataFrame):
-        for col in labels:
-            df[col] = df[col].astype(str)
+        # Add weights if not exists
+        if (df.get('source', None) is not None) and (df.get('target', None) is not None) and (df.get('weight', None) is None):
+            if logger is not None: logger.info('Create new column with [weights]=1')
+            df['weight']=1
+
+        for label in labels:
+            df[label] = df[label].astype(str)
     else:
         if isinstance(df, list):
             df = np.array(df)
@@ -447,7 +709,8 @@ def pre_processing(df, labels=['source', 'target']):
 
     # Remove quotes and special chars
     df = remove_quotes(df)
-    df = remove_special_chars(df)
+    df = remove_special_chars(df, clean_source_target=clean_source_target)
+    df = trim_spaces(df)
     return df
 
 
@@ -472,6 +735,9 @@ def remove_quotes(df):
                 df.columns = np.array(list(map(lambda x: x.replace("'", ""), df.columns)))
             if not pd.api.types.is_numeric_dtype(df.index):
                 df.index = np.array(list(map(lambda x: x.replace("'", ""), df.index)))
+            if np.all(np.isin(['source', 'target'], df.columns.values)):
+                df['source'] = list(map(lambda x: x.replace("'", ""), df['source']))
+                df['target'] = list(map(lambda x: x.replace("'", ""), df['target']))
         except:
             pass
         return df
@@ -480,7 +746,18 @@ def remove_quotes(df):
 
 
 # %% Remove special characters from column names
-def remove_special_chars(df):
+def trim_spaces(df):
+    """Trim spaces at the start and end of strings in the 'source' and 'target' columns."""
+    if isinstance(df, pd.DataFrame):
+        if df.get('source', None) is not None:
+            df['source'] = df['source'].str.strip()
+        if df.get('target', None) is not None:
+            df['target'] = df['target'].str.strip()
+    return df
+
+
+# %% Remove special characters from column names
+def remove_special_chars(df, clean_source_target=False):
     """Remove special characters.
 
     Parameters
@@ -493,11 +770,24 @@ def remove_special_chars(df):
 
     """
     if isinstance(df, pd.DataFrame):
-        df.columns = list(map(lambda x: unicodedata.normalize('NFD', x).encode('ascii', 'ignore').decode("utf-8").replace(' ', '_'), df.columns.values.astype(str)))
-        df.index = list(map(lambda x: unicodedata.normalize('NFD', x).encode('ascii', 'ignore').decode("utf-8").replace(' ', '_'), df.index.values.astype(str)))
-        return df
-    else:
-        return df
+        df.columns = clean_text(df.columns.values.astype(str))
+        df.index = clean_text(df.index.values.astype(str))
+        # df.columns = list(map(lambda x: unicodedata.normalize('NFD', x).encode('ascii', 'ignore').decode("utf-8").replace(' ', '_'), df.columns.values.astype(str)))
+        # df.index = list(map(lambda x: unicodedata.normalize('NFD', x).encode('ascii', 'ignore').decode("utf-8").replace(' ', '_'), df.index.values.astype(str)))
+
+    if isinstance(df, pd.DataFrame) and clean_source_target:
+        if df.get('source', None) is not None:
+            df['source'] = clean_text(df['source'].values.astype(str))
+        if df.get('target', None) is not None:
+            df['target'] = clean_text(df['target'].values.astype(str))
+
+    return df
+
+
+# %% Remove special characters from column names
+def clean_text(X):
+    return list(map(lambda x: unicodedata.normalize('NFD', x).encode('ascii', 'ignore').decode("utf-8").replace(' ', '_'), X))
+
 
 def write_html_file(config, html, logger):
     """Write html file.

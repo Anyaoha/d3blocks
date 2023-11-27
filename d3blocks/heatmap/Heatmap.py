@@ -10,12 +10,11 @@ from ismember import ismember
 import colourmap
 import numpy as np
 import os
-from shutil import copyfile
 
 try:
-    from .. utils import set_path, set_labels, write_html_file
+    from .. utils import set_path, set_labels, write_html_file, pre_processing, update_config, vec2adjmat, scale, normalize, include_save_to_svg_script
 except:
-    from utils import set_path, set_labels, write_html_file
+    from utils import set_path, set_labels, write_html_file, pre_processing, update_config, vec2adjmat, scale, normalize, include_save_to_svg_script
 
 
 # %% Set configuration properties
@@ -28,17 +27,18 @@ def set_config(config={}, **kwargs):
     config['figsize'] = kwargs.get('figsize', [720, 720])
     config['showfig'] = kwargs.get('showfig', True)
     config['overwrite'] = kwargs.get('overwrite', True)
-    config['classlabel'] = kwargs.get('classlabel', 'cluster')
+    config['color'] = kwargs.get('color', 'cluster')
     config['description'] = kwargs.get('description', '')
-    config['vmax'] = kwargs.get('vmax', None)
-    config['vmin'] = kwargs.get('vmin', None)
     config['stroke'] = kwargs.get('stroke', 'red')
     config['notebook'] = kwargs.get('notebook', False)
     config['reset_properties'] = kwargs.get('reset_properties', True)
-    config['cmap'] = kwargs.get('cmap', 'inferno')
+    config['cmap'] = kwargs.get('cmap', 'Set1')
     config['cluster_params'] = kwargs.get('cluster_params', {})
     config['scale'] = kwargs.get('scale', False)
     config['fontsize'] = kwargs.get('fontsize', 10)
+    config['fontsize_mouseover'] = kwargs.get('fontsize_mouseover', config['fontsize'] + 8)
+    config['scaler'] = kwargs.get('scaler', 'zscore')
+    config['save_button'] = kwargs.get('save_button', True)
 
     if config['description'] is None: config['description']=''
     if config['cmap'] in ['schemeCategory10', 'schemeAccent', 'schemeDark2', 'schemePaired', 'schemePastel2', 'schemePastel1', 'schemeSet1', 'schemeSet2', 'schemeSet3', 'schemeTableau10']:
@@ -48,6 +48,56 @@ def set_config(config={}, **kwargs):
 
     # return
     return config
+
+
+def show(df, **kwargs):
+    """Build and show the graph."""
+    df = df.copy()
+    node_properties = kwargs.get('node_properties')
+    logger = kwargs.get('logger', None)
+    config = update_config(kwargs, logger)
+    config = config.copy()
+
+    # Rescale data
+    if df.get('weight', None) is not None:
+        df['weight'] = normalize(df['weight'].values, scaler=config['scaler'])
+
+    # Prepare the data
+    json_data = get_data_ready_for_d3(df, node_properties)
+    # Create the html file
+    html = write_html(json_data, config, logger)
+    # Return html
+    return html
+
+
+# %% Set Edge properties
+def set_edge_properties(df, **kwargs):
+    """Set the edge properties.
+
+    Parameters
+    ----------
+    df : pd.DataFrame()
+        Input data containing the following columns:
+        'source'
+        'target'
+        'weight'
+    logger : Object, (default: None)
+        Logger.
+
+    Returns
+    -------
+    df : pd.DataFrame()
+        DataFrame.
+
+    """
+    # node_properties = kwargs.get('node_properties')
+    # logger = kwargs.get('logger', None)
+    # config = kwargs.get('config')
+
+    df = df.copy()
+    df = pre_processing(df)
+
+    return df
 
 
 # %% Node properties
@@ -72,7 +122,6 @@ def set_node_properties(df, **kwargs):
         Dictionary containing the label properties.
 
     """
-    cmap = kwargs.get('cmap')
     logger = kwargs.get('logger', None)
     col_labels = kwargs.get('labels', ['source', 'target'])
 
@@ -80,101 +129,75 @@ def set_node_properties(df, **kwargs):
     uilabels = set_labels(df, col_labels=col_labels, logger=logger)
 
     # Create unique label/node colors
-    colors = colourmap.generate(len(uilabels), cmap=cmap, scheme='hex', verbose=0)
+    # cmap = kwargs.get('cmap')
+    # colors = colourmap.generate(len(uilabels), cmap=cmap, scheme='hex', verbose=0)
 
     # Make dict
     dict_labels = {}
     for i, label in enumerate(uilabels):
-        dict_labels[label] = {'id': i, 'label': label, 'color': colors[i]}
+        # dict_labels[label] = {'id': i, 'label': label, 'color': colors[i]}
+        dict_labels[label] = {'id': i, 'label': label, 'color': '#000000'}
     # Return
     return dict_labels
 
 
-def set_properties(df, config, node_properties, logger=None):
-    # Rescale data
-    if config['vmax'] is not None:
-        df = _scale(df, vmax=config['vmax'], make_round=False, logger=logger)
-    if config['vmax'] is None:
-        config['vmax'] = np.max(df['weight'].values)
-        logger.debug('Set vmax: %.0g.' %(config['vmax']))
-
-    # Prepare the data
-    json_data = get_data_ready_for_d3(df, node_properties)
-    # Create the html file
-    html = write_html(json_data, config, logger)
-    # Return html
-    return html
-
-
-def color_on_clusterlabel(adjmat, df, node_properties, config, logger):
+def set_colors(df, **kwargs):
     """Color in clusterlabel.
 
     Returns
     -------
-    node_properties : array-like
+    df : array-like
         Node properties.
 
     """
+    logger = kwargs.get('logger', None)
+    config = kwargs.get('config')
+    node_properties = kwargs.get('node_properties')
+
+    # d3network.vec2adjmat(source, target, weight=weight, symmetric=symmetric, aggfunc=aggfunc)
+    if df.get('weight', None) is not None:
+        df = df.copy()
+        df['weight'] = normalize(df['weight'].values, scaler=config['scaler'])
+    adjmat = vec2adjmat(source=df['source'], target=df['target'], weight=df.get('weight', None).values, symmetric=True)
+
     # Default is all cluster labels are the same
     node_properties['classlabel'] = np.zeros(node_properties.shape[0]).astype(int)
+    node_properties['color'] = '#000000'
 
-    if config['classlabel']=='cluster':
+    if isinstance(config['color'], str) and config['color']=='cluster':
         # Cluster the nodes
         try:
             from clusteval import clusteval
         except:
             raise Exception('clusteval needs to be pip installed first. Tip: pip install clusteval')
         # Initialize
+        plot_param = config['cluster_params'].pop('plot', False)
         ce = clusteval(**config['cluster_params'])
         results = ce.fit(adjmat.values)
+        if plot_param: ce.plot()
+        logger.info('[%d] clusters detected' %(len(np.unique(results['labx']))))
+
+        # uilabx = np.unique(results['labx'])
         Iloc, idx = ismember(node_properties['label'].values, adjmat.index.values)
         if np.any(~Iloc):
             logger.error('Feature name(s): %s can not be used. Hint: Remove special characters. <return>' %(df.index.values[~np.isin(np.arange(0, df.shape[0]), idx)]))
             return None
-        node_properties['classlabel'] = np.zeros(node_properties.shape[0]).astype(int)
-        node_properties.loc[Iloc, 'classlabel'] = results['labx'][idx].astype(int)
-    elif config['classlabel']=='label':
-        uiy = np.unique(node_properties['color'])
-        node_properties['classlabel'] = ismember(node_properties['color'].values, uiy)[1]
-    elif isinstance(config['classlabel'], list):
-        logger.info('Custom class labels are used to color the clusters.')
-        node_properties['classlabel'] = config['classlabel']
+        logger.info('Colors are based on clustering.')
+        node_properties['classlabel'] = results['labx'].astype(int)
+        # # Create node colors
+        node_properties['color'] = colourmap.fromlist(node_properties['classlabel'], cmap=config['cmap'], scheme='hex', verbose=0)[0]
+    elif isinstance(config['color'], (list, np.ndarray)):
+        if np.all(list(map(colourmap.is_hex_color, config['color']))):
+            logger.info('Colors are based on the input hex colors.')
+            node_properties['color'] = config['color']
+            node_properties['classlabel'] = ismember(config['color'], np.unique(config['color']))[1]
+        else:
+            logger.info('Colors are based on the labels.')
+            node_properties['classlabel'] = ismember(config['color'], np.unique(config['color']))[1]
+            node_properties['color'] = colourmap.fromlist(node_properties['classlabel'], cmap=config['cmap'], scheme='hex', verbose=0)[0]
 
     return node_properties
 
-# %% Scaling
-def _scale(X, vmax=100, make_round=True, logger=None):
-    """Scale data.
-
-    Description
-    -----------
-    Scaling in range by X*(100/max(X))
-
-    Parameters
-    ----------
-    X : array-like
-        Input image data.
-    verbose : int (default : 3)
-        Print to screen. 0: None, 1: Error, 2: Warning, 3: Info, 4: Debug, 5: Trace.
-
-    Returns
-    -------
-    df : array-like
-        Scaled image.
-
-    """
-    logger.info('Scaling image between [min-100]')
-    try:
-        # Normalizing between 0-100
-        # X = X - X.min()
-        X = X / X.max().max()
-        X = X * vmax
-        if make_round:
-            X = np.round(X)
-    except:
-        logger.debug('Warning: Scaling not possible.')
-
-    return X
 
 def write_html(json_data, config, logger=None):
     """Write html.
@@ -191,6 +214,9 @@ def write_html(json_data, config, logger=None):
     None.
 
     """
+    # Save button
+    save_script, show_save_button = include_save_to_svg_script(config['save_button'], title=config['title'])
+
     # Check path
     dirpath, filename = None, ''
     if config['filepath'] is not None:
@@ -208,9 +234,13 @@ def write_html(json_data, config, logger=None):
     html = html.replace('$WIDTH_DROPDOWN$', str(int(config['figsize'][0] + 200)))
     html = html.replace('$HEIGHT$', str(config['figsize'][1]))
     html = html.replace('$STROKE$', str(config['stroke']))
+    html = html.replace('$FONTSIZE$', str(config['fontsize']))
+    html = html.replace('$FONTSIZE_MOUSEOVER$', str(config['fontsize_mouseover']))
     html = html.replace('$DATA_PATH$', filename)
     html = html.replace('$SUPPORT$', config['support'])
-
+    html = html.replace('$SAVE_TO_SVG_SCRIPT$', save_script)
+    html = html.replace('$SAVE_BUTTON_START$', show_save_button[0])
+    html = html.replace('$SAVE_BUTTON_STOP$', show_save_button[1])
     html = html.replace('$DATA_COMES_HERE$', json_data)
 
     # Write to html
@@ -222,8 +252,6 @@ def write_html(json_data, config, logger=None):
 def get_data_ready_for_d3(df, node_properties):
     """Convert the source-target data into d3 compatible data.
 
-    Description
-    -----------
     Embed the Data in the HTML. Note that the embedding is an important stap te prevent security issues by the browsers.
     Most (if not all) browser do not accept to read a file using d3.csv or so. It then requires security-by-passes, but thats not the way to go.
     An alternative is use local-host and CORS but then the approach is not user-friendly coz setting up this, is not so straightforward.
@@ -251,8 +279,10 @@ def get_data_ready_for_d3(df, node_properties):
         dfvec['target'] = dfvec['target'].replace(node, i)
 
     NODE_STR = '\n{\n"nodes":\n[\n'
-    for node, classlabel in zip(node_properties['label'], node_properties['classlabel']):
-        NODE_STR = NODE_STR + '{"name":' + '"' + node + '"' + ',' + '"cluster":' + str(classlabel) + "},"
+    # for node, classlabel in zip(node_properties['label'], node_properties['classlabel']):
+    for i, node in enumerate(node_properties['label']):
+        NODE_STR = NODE_STR + '{"name":' + '"' + node + '"' + ',' + '"cluster":' + str(node_properties['classlabel'].iloc[i]) + ',' + '"color":' + '"' + str(node_properties['color'].iloc[i]) + '"' + "},"
+        # NODE_STR = NODE_STR + '{"name":' + '"' + node + '"' + ',' "},"
         NODE_STR = NODE_STR + '\n'
     NODE_STR = NODE_STR + '],\n'
 
